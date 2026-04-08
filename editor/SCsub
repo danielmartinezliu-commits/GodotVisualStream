@@ -83,6 +83,7 @@ if env.editor_build:
     SConscript("export/SCsub")
     SConscript("file_system/SCsub")
     SConscript("gui/SCsub")
+    SConscript("gvs/SCsub")
     SConscript("icons/SCsub")
     SConscript("inspector/SCsub")
     SConscript("import/SCsub")
