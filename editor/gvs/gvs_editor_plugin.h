@@ -8,26 +8,30 @@
 
 class EditorFileDialog;
 
-class GVSEditorPlugin : public EditorPlugin {
-	GDCLASS(GVSEditorPlugin, EditorPlugin);
+namespace GodotVisualStream {
 
-	GVSEditorWindow *editor_window = nullptr;
-	EditorFileDialog *create_dialog = nullptr;
+	class GVSEditorPlugin : public EditorPlugin {
+		GDCLASS(GVSEditorPlugin, EditorPlugin);
 
-	Ref<GVSContextMenuPlugin> context_menu_plugin;
+		GVSEditorWindow *editor_window = nullptr;
+		EditorFileDialog *create_dialog = nullptr;
 
-	Ref<GVSFormatLoader> format_loader;
-	Ref<GVSFormatSaver> format_saver;
+		Ref<GVSContextMenuPlugin> context_menu_plugin;
 
-protected:
-	static void _bind_methods();
+		Ref<GVSFormatLoader> format_loader;
+		Ref<GVSFormatSaver> format_saver;
 
-public:
-	virtual String get_plugin_name() const override { return "GVS"; }
+	protected:
+		static void _bind_methods();
 
-	virtual bool handles(Object *p_object) const override;
-	virtual void edit(Object *p_object) override;
+	public:
+		virtual String get_plugin_name() const override { return "GVS"; }
 
-	GVSEditorPlugin();
-	~GVSEditorPlugin();
-};
+		virtual bool handles(Object *p_object) const override;
+		virtual void edit(Object *p_object) override;
+
+		GVSEditorPlugin();
+		~GVSEditorPlugin();
+	};
+
+}

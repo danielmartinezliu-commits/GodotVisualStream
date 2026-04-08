@@ -5,19 +5,23 @@
 
 class EditorFileDialog;
 
-class GVSContextMenuPlugin : public EditorContextMenuPlugin {
-	GDCLASS(GVSContextMenuPlugin, EditorContextMenuPlugin);
+namespace GodotVisualStream {
 
-	EditorFileDialog *save_dialog = nullptr;
+	class GVSContextMenuPlugin : public EditorContextMenuPlugin {
+		GDCLASS(GVSContextMenuPlugin, EditorContextMenuPlugin);
 
-	void _show_create_dialog(Array p_paths);
-	void _on_file_selected(const String &p_path);
+		EditorFileDialog *save_dialog = nullptr;
 
-protected:
-	static void _bind_methods();
+		void _show_create_dialog(Array p_paths);
+		void _on_file_selected(const String &p_path);
 
-public:
-	void setup(EditorFileDialog *p_dialog);
+	protected:
+		static void _bind_methods();
 
-	virtual void get_options(const Vector<String> &p_paths) override;
-};
+	public:
+		void setup(EditorFileDialog *p_dialog);
+
+		virtual void get_options(const Vector<String> &p_paths) override;
+	};
+
+}

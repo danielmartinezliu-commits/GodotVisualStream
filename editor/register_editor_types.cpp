@@ -145,6 +145,11 @@
 #include "editor/gvs/gvs_context_menu_plugin.h"
 #include "editor/gvs/gvs_editor_plugin.h"
 #include "editor/gvs/gvs_resource.h"
+#include "editor/gvs/panels/gvs_particle_preview.h"
+#include "editor/gvs/panels/gvs_variables_panel.h"
+#include "editor/gvs/panels/gvs_emitters_panel.h"
+#include "editor/gvs/panels/gvs_timeline_panel.h"
+#include "editor/gvs/panels/gvs_inspector_panel.h"
 
 void register_editor_types() {
 	OS::get_singleton()->benchmark_begin_measure("Editor", "Register Types");
@@ -224,13 +229,18 @@ void register_editor_types() {
 	GDREGISTER_CLASS(ResourceImporterWAV);
 
 	// GVS Editor
-	GDREGISTER_CLASS(GVSResource);
-	GDREGISTER_CLASS(GVSContextMenuPlugin);
-	GDREGISTER_CLASS(GVSFormatLoader);
-	GDREGISTER_CLASS(GVSFormatSaver);
-	GDREGISTER_CLASS(GVSEditorWindow);
-	GDREGISTER_CLASS(GVSEditorPlugin);
-	EditorPlugins::add_by_type<GVSEditorPlugin>();
+	GDREGISTER_CLASS(GodotVisualStream::GVSResource);
+	GDREGISTER_CLASS(GodotVisualStream::GVSContextMenuPlugin);
+	GDREGISTER_CLASS(GodotVisualStream::GVSFormatLoader);
+	GDREGISTER_CLASS(GodotVisualStream::GVSFormatSaver);
+	GDREGISTER_CLASS(GodotVisualStream::GVSParticlePreview);
+	GDREGISTER_CLASS(GodotVisualStream::GVSVariablesPanel);
+	GDREGISTER_CLASS(GodotVisualStream::GVSEmittersPanel);
+	GDREGISTER_CLASS(GodotVisualStream::GVSTimelinePanel);
+	GDREGISTER_CLASS(GodotVisualStream::GVSInspectorPanel);
+	GDREGISTER_CLASS(GodotVisualStream::GVSEditorWindow);
+	GDREGISTER_CLASS(GodotVisualStream::GVSEditorPlugin);
+	EditorPlugins::add_by_type<GodotVisualStream::GVSEditorPlugin>();
 
 	// This list is alphabetized, and plugins that depend on Node2D are in their own section below.
 	EditorPlugins::add_by_type<AnimationTreeEditorPlugin>();
