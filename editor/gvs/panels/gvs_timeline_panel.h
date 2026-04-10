@@ -1,7 +1,8 @@
 #pragma once
 
-#include "scene/gui/panel_container.h"
 #include "scene/gui/label.h"
+#include "scene/gui/panel_container.h"
+#include "scene/gui/tab_container.h"
 #include "editor/gvs/gvs_resource.h"
 
 namespace GodotVisualStream {

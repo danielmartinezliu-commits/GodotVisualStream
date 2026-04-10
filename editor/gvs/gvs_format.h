@@ -23,8 +23,6 @@ namespace GodotVisualStream {
 		virtual String get_resource_type(const String &p_path) const override;
 	};
 
-	// ─── Saver ───────────────────────────────────────────────────────────────────
-	// Escribe un GVSResource al disco en formato .gvs (JSON legible).
 	class GVSFormatSaver : public ResourceFormatSaver {
 		GDCLASS(GVSFormatSaver, ResourceFormatSaver);
 

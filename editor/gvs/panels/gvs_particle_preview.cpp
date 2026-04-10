@@ -1,5 +1,10 @@
 #include "gvs_particle_preview.h"
 
+#include "scene/gui/box_container.h"
+#include "scene/resources/style_box_flat.h"
+
+class VBoxContainer;
+
 namespace GodotVisualStream {
 
 void GVSParticlePreview::_bind_methods() {
@@ -8,6 +13,13 @@ void GVSParticlePreview::_bind_methods() {
 void GVSParticlePreview::_notification(int p_what) {
 	if (p_what == NOTIFICATION_READY) {
 		_build_ui();
+		Ref<StyleBoxFlat> base = get_theme_stylebox(SNAME("panel"), SNAME("Tree"));
+		if (base.is_valid()) {
+			Ref<StyleBoxFlat> bordered = base->duplicate();
+			bordered->set_border_width_all(1);
+			bordered->set_border_color(base->get_bg_color().lightened(0.35f));
+			add_theme_style_override(SNAME("panel"), bordered);
+		}
 	}
 }
 
@@ -16,24 +28,30 @@ void GVSParticlePreview::_build_ui() {
 		return;
 	}
 
-	// --- SubViewportContainer (llena el panel) ---
+	TabContainer *tabs = memnew(TabContainer);
+	tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	tabs->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	add_child(tabs);
+
+	VBoxContainer *tab_root = memnew(VBoxContainer);
+	tab_root->set_name("Preview");
+	tab_root->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	tab_root->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	tabs->add_child(tab_root);
+
 	viewport_container = memnew(SubViewportContainer);
 	viewport_container->set_stretch(true);
-	viewport_container->set_anchors_and_offsets_preset(Control::PRESET_FULL_RECT);
 	viewport_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	viewport_container->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	add_child(viewport_container);
+	tab_root->add_child(viewport_container);
 
-	// --- SubViewport ---
 	viewport = memnew(SubViewport);
 	viewport->set_transparent_background(false);
 	viewport_container->add_child(viewport);
 
-	// --- Raíz 3D ---
 	scene_root = memnew(Node3D);
 	viewport->add_child(scene_root);
 
-	// --- Entorno (cielo sólido oscuro para que se vean las partículas) ---
 	WorldEnvironment *world_env = memnew(WorldEnvironment);
 	Ref<Environment> env;
 	env.instantiate();
@@ -44,12 +62,10 @@ void GVSParticlePreview::_build_ui() {
 	world_env->set_environment(env);
 	scene_root->add_child(world_env);
 
-	// --- Luz direccional ---
 	DirectionalLight3D *light = memnew(DirectionalLight3D);
 	light->set_rotation_degrees(Vector3(-45.0f, 45.0f, 0.0f));
 	scene_root->add_child(light);
 
-	// --- Cámara ---
 	camera = memnew(Camera3D);
 	camera->set_position(Vector3(0.0f, 1.5f, 4.0f));
 	camera->set_rotation_degrees(Vector3(-15.0f, 0.0f, 0.0f));
@@ -62,6 +78,7 @@ void GVSParticlePreview::load_resource(const Ref<GVSResource> &p_resource) {
 
 GVSParticlePreview::GVSParticlePreview() {
 	set_custom_minimum_size(Size2(200, 200));
+	set_theme_type_variation("Tree");
 }
 
 }

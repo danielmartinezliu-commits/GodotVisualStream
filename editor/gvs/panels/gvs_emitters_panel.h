@@ -1,8 +1,11 @@
 #pragma once
 
 #include "scene/gui/control.h"
-#include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
+#include "scene/gui/margin_container.h"
+#include "scene/gui/box_container.h"
+#include "scene/resources/style_box_flat.h"
+#include "scene/scene_string_names.h"
 #include "core/input/input_event.h"
 #include "core/templates/vector.h"
 #include "editor/gvs/gvs_resource.h"
@@ -15,7 +18,8 @@ class GVSEmittersPanel : public Control {
 
 	Ref<GVSResource> current_resource;
 
-	HBoxContainer *toolbar = nullptr;
+	// Barra superpuesta dentro del canvas (no ocupa espacio encima)
+	MarginContainer *overlay_bar = nullptr;
 
 	Vector<Ref<GVSEmitterNode>> nodes;
 
@@ -28,12 +32,13 @@ class GVSEmittersPanel : public Control {
 	Vector2 pan_start_mouse;
 	Vector2 pan_start_offset;
 
+	Color _panel_border_color = Color(0.1f, 0.1f, 0.1f);
+
 	static constexpr float ZOOM_MIN  = 0.15f;
 	static constexpr float ZOOM_MAX  = 4.0f;
 	static constexpr float ZOOM_STEP = 0.12f;
 	static constexpr float GRID_STEP = 25.0f;
 
-	float   _toolbar_h() const;
 	void    _draw_grid();
 	void    _draw_nodes();
 	void    _draw_single_node(const Ref<GVSEmitterNode> &p_node);

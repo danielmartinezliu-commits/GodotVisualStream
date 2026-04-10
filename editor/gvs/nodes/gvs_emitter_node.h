@@ -9,6 +9,7 @@ namespace GodotVisualStream {
 class GVSEmitterNode : public RefCounted {
 	GDCLASS(GVSEmitterNode, RefCounted);
 
+	int     id         = 0;
 	String  title      = "Emitter";
 	Vector2 canvas_pos;
 	bool    selected   = false;
@@ -22,6 +23,8 @@ public:
 	static constexpr float HEADER_HEIGHT =  28.0f;
 
 	static Ref<GVSEmitterNode> create(const String &p_title = "Emitter", Vector2 p_pos = Vector2());
+
+	int     get_id() const                  { return id; }
 
 	void    set_title(const String &p_title) { title = p_title; }
 	String  get_title() const               { return title; }

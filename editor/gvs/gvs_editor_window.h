@@ -56,4 +56,4 @@ public:
 	GVSEditorWindow();
 };
 
-} // namespace GodotVisualStream
+}

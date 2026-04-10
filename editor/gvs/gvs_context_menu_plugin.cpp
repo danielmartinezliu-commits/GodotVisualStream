@@ -24,8 +24,8 @@ namespace GodotVisualStream {
 	}
 
 	void GVSContextMenuPlugin::_show_create_dialog(Array p_paths) {
-		ERR_FAIL_NULL_MSG(save_dialog, "GVSContextMenuPlugin: setup() no fue llamado.");
-		ERR_FAIL_COND_MSG(p_paths.is_empty(), "GVSContextMenuPlugin: el callback no recibió ninguna carpeta.");
+		ERR_FAIL_NULL_MSG(save_dialog, "GVSContextMenuPlugin: setup() was not called.");
+		ERR_FAIL_COND_MSG(p_paths.is_empty(), "GVSContextMenuPlugin: callback received no folder.");
 
 		String folder = p_paths[0];
 		save_dialog->set_current_dir(folder);
@@ -39,7 +39,7 @@ namespace GodotVisualStream {
 
 		Error err = ResourceSaver::save(resource, p_path);
 		ERR_FAIL_COND_MSG(err != OK,
-				vformat("GVSContextMenuPlugin: no se pudo guardar '%s' (error %d).", p_path, err));
+				vformat("GVSContextMenuPlugin: failed to save '%s' (error %d).", p_path, err));
 
 		EditorFileSystem::get_singleton()->scan_changes();
 	}
