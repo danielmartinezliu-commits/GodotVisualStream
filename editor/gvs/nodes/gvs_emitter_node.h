@@ -1,13 +1,13 @@
 #pragma once
 
-#include "core/object/ref_counted.h"
+#include "core/io/resource.h"
 #include "core/math/vector2.h"
 #include "core/string/ustring.h"
 
 namespace GodotVisualStream {
 
-class GVSEmitterNode : public RefCounted {
-	GDCLASS(GVSEmitterNode, RefCounted);
+class GVSEmitterNode : public Resource {
+	GDCLASS(GVSEmitterNode, Resource);
 
 	int     id         = 0;
 	String  title      = "Emitter";
@@ -23,7 +23,9 @@ public:
 	static constexpr float HEADER_HEIGHT =  28.0f;
 
 	static Ref<GVSEmitterNode> create(const String &p_title = "Emitter", Vector2 p_pos = Vector2());
+	static void ensure_id_counter(int p_id);
 
+	void    set_id(int p_id)                { id = p_id; }
 	int     get_id() const                  { return id; }
 
 	void    set_title(const String &p_title) { title = p_title; }

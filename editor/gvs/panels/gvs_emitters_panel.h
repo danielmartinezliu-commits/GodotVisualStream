@@ -48,6 +48,7 @@ class GVSEmittersPanel : public Control {
 	int     _node_at_screen(Vector2 p_screen) const;
 
 	void    _on_add_node_pressed();
+	void    _save();
 
 protected:
 	static void _bind_methods();

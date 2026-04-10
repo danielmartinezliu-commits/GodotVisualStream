@@ -145,6 +145,8 @@
 #include "editor/gvs/gvs_context_menu_plugin.h"
 #include "editor/gvs/gvs_editor_plugin.h"
 #include "editor/gvs/gvs_resource.h"
+#include "editor/gvs/nodes/gvs_emitter_node.h"
+#include "editor/gvs/nodes/gvs_particle_system.h"
 #include "editor/gvs/panels/gvs_particle_preview.h"
 #include "editor/gvs/panels/gvs_variables_panel.h"
 #include "editor/gvs/panels/gvs_emitters_panel.h"
@@ -230,6 +232,8 @@ void register_editor_types() {
 
 	// GVS Editor
 	GDREGISTER_CLASS(GodotVisualStream::GVSResource);
+	GDREGISTER_CLASS(GodotVisualStream::GVSEmitterNode);
+	GDREGISTER_CLASS(GodotVisualStream::GVSParticleSystem);
 	GDREGISTER_CLASS(GodotVisualStream::GVSContextMenuPlugin);
 	GDREGISTER_CLASS(GodotVisualStream::GVSFormatLoader);
 	GDREGISTER_CLASS(GodotVisualStream::GVSFormatSaver);

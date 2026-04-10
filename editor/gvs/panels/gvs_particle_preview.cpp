@@ -3,8 +3,6 @@
 #include "scene/gui/box_container.h"
 #include "scene/resources/style_box_flat.h"
 
-class VBoxContainer;
-
 namespace GodotVisualStream {
 
 void GVSParticlePreview::_bind_methods() {
@@ -43,10 +41,12 @@ void GVSParticlePreview::_build_ui() {
 	viewport_container->set_stretch(true);
 	viewport_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	viewport_container->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	viewport_container->set_mouse_filter(Control::MOUSE_FILTER_PASS);
 	tab_root->add_child(viewport_container);
 
 	viewport = memnew(SubViewport);
 	viewport->set_transparent_background(false);
+	viewport->set_use_own_world_3d(true);
 	viewport_container->add_child(viewport);
 
 	scene_root = memnew(Node3D);
@@ -67,9 +67,60 @@ void GVSParticlePreview::_build_ui() {
 	scene_root->add_child(light);
 
 	camera = memnew(Camera3D);
-	camera->set_position(Vector3(0.0f, 1.5f, 4.0f));
-	camera->set_rotation_degrees(Vector3(-15.0f, 0.0f, 0.0f));
 	scene_root->add_child(camera);
+	_update_camera();
+
+	MeshInstance3D *plane_instance = memnew(MeshInstance3D);
+	Ref<PlaneMesh> plane_mesh;
+	plane_mesh.instantiate();
+	plane_mesh->set_size(Vector2(4.0f, 4.0f));
+	plane_instance->set_mesh(plane_mesh);
+	scene_root->add_child(plane_instance);
+
+	MeshInstance3D *sphere_instance = memnew(MeshInstance3D);
+	Ref<SphereMesh> sphere_mesh;
+	sphere_mesh.instantiate();
+	sphere_mesh->set_radius(0.5f);
+	sphere_mesh->set_height(1.0f);
+	sphere_instance->set_mesh(sphere_mesh);
+	sphere_instance->set_position(Vector3(0.0f, 0.5f, 0.0f));
+	scene_root->add_child(sphere_instance);
+}
+
+void GVSParticlePreview::_update_camera() {
+	if (!camera) {
+		return;
+	}
+	const float x = orbit_dist * Math::sin(orbit_yaw) * Math::cos(orbit_pitch);
+	const float y = orbit_dist * Math::sin(orbit_pitch);
+	const float z = orbit_dist * Math::cos(orbit_yaw) * Math::cos(orbit_pitch);
+	camera->set_position(Vector3(x, y, z));
+	camera->look_at(Vector3(0.0f, 0.5f, 0.0f));
+}
+
+void GVSParticlePreview::gui_input(const Ref<InputEvent> &p_event) {
+	Ref<InputEventMouseButton> mb = p_event;
+	if (mb.is_valid() && mb->get_button_index() == MouseButton::LEFT) {
+		orbiting = mb->is_pressed();
+		if (orbiting) {
+			orbit_last_mouse = mb->get_position();
+		}
+		accept_event();
+		return;
+	}
+
+	Ref<InputEventMouseMotion> mm = p_event;
+	if (mm.is_valid() && orbiting) {
+		const Vector2 delta = mm->get_position() - orbit_last_mouse;
+		orbit_last_mouse    = mm->get_position();
+
+		orbit_yaw   -= delta.x * 0.01f;
+		orbit_pitch += delta.y * 0.01f;
+		orbit_pitch  = CLAMP(orbit_pitch, Math::deg_to_rad(-80.0f), Math::deg_to_rad(80.0f));
+
+		_update_camera();
+		accept_event();
+	}
 }
 
 void GVSParticlePreview::load_resource(const Ref<GVSResource> &p_resource) {
@@ -79,6 +130,7 @@ void GVSParticlePreview::load_resource(const Ref<GVSResource> &p_resource) {
 GVSParticlePreview::GVSParticlePreview() {
 	set_custom_minimum_size(Size2(200, 200));
 	set_theme_type_variation("Tree");
+	set_mouse_filter(Control::MOUSE_FILTER_STOP);
 }
 
 }

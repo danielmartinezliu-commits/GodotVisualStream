@@ -1,5 +1,6 @@
 #include "gvs_emitters_panel.h"
 
+#include "core/io/resource_saver.h"
 #include "core/object/callable_mp.h"
 #include "scene/scene_string_names.h"
 
@@ -90,15 +91,11 @@ void GVSEmittersPanel::_draw_single_node(const Ref<GVSEmitterNode> &p_node) {
 	const Rect2 body(pos, Vector2(w, h));
 	const Rect2 header(pos, Vector2(w, hh));
 
-	// Cuerpo
 	draw_rect(body, Color(0.22f, 0.22f, 0.22f));
-	// Cabecera
 	draw_rect(header, Color(0.18f, 0.45f, 0.78f));
-	// Borde (más brillante si está seleccionado)
 	const Color border = p_node->is_selected() ? Color(0.9f, 0.6f, 0.1f) : Color(0.12f, 0.12f, 0.12f);
 	draw_rect(body, border, false, p_node->is_selected() ? 2.0f : 1.0f);
 
-	// Título
 	Ref<Font> font = get_theme_font("font", "Label");
 	if (font.is_valid()) {
 		const int font_size = MAX(10, (int)(13 * zoom));
@@ -170,6 +167,9 @@ void GVSEmittersPanel::gui_input(const Ref<InputEvent> &p_event) {
 			}
 		} else {
 			if (mb->get_button_index() == MouseButton::LEFT) {
+				if (dragging_node >= 0) {
+					_save();
+				}
 				dragging_node = -1;
 				accept_event();
 			} else if (mb->get_button_index() == MouseButton::MIDDLE) {
@@ -195,18 +195,45 @@ void GVSEmittersPanel::gui_input(const Ref<InputEvent> &p_event) {
 }
 
 void GVSEmittersPanel::_on_add_node_pressed() {
-	// Colocar el nuevo nodo en el centro visible del canvas
 	const Vector2 center_screen(get_size().x * 0.5f, get_size().y * 0.5f);
 	const Vector2 canvas_pos = _screen_to_canvas(center_screen)
 			- Vector2(GVSEmitterNode::NODE_WIDTH * 0.5f, GVSEmitterNode::NODE_HEIGHT * 0.5f);
 
 	Ref<GVSEmitterNode> node = GVSEmitterNode::create("Emitter", canvas_pos);
 	nodes.push_back(node);
+
+	if (current_resource.is_valid()) {
+		TypedArray<GVSEmitterNode> res_nodes = current_resource->get_nodes();
+		res_nodes.push_back(node);
+		current_resource->set_nodes(res_nodes);
+		_save();
+	}
+
 	queue_redraw();
+}
+
+void GVSEmittersPanel::_save() {
+	if (current_resource.is_valid() && !current_resource->get_path().is_empty()) {
+		ResourceSaver::save(current_resource, current_resource->get_path());
+	}
 }
 
 void GVSEmittersPanel::load_resource(const Ref<GVSResource> &p_resource) {
 	current_resource = p_resource;
+	nodes.clear();
+
+	if (current_resource.is_valid()) {
+		TypedArray<GVSEmitterNode> saved = current_resource->get_nodes();
+		for (int i = 0; i < saved.size(); i++) {
+			Ref<GVSEmitterNode> node = saved[i];
+			if (node.is_valid()) {
+				GVSEmitterNode::ensure_id_counter(node->get_id());
+				nodes.push_back(node);
+			}
+		}
+	}
+
+	queue_redraw();
 }
 
 GVSEmittersPanel::GVSEmittersPanel() {

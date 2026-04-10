@@ -1,26 +1,28 @@
 #pragma once
 
 #include "core/io/resource.h"
+#include "core/variant/typed_array.h"
+#include "editor/gvs/nodes/gvs_emitter_node.h"
 
 namespace GodotVisualStream {
-	class GVSResource : public Resource {
-		GDCLASS(GVSResource, Resource);
 
-	protected:
-		static void _bind_methods();
+class GVSResource : public Resource {
+	GDCLASS(GVSResource, Resource);
 
-	public:
-		int version = 1;
+	int version = 1;
+	TypedArray<GVSEmitterNode> nodes;
 
-		Dictionary graph_data;
+protected:
+	static void _bind_methods();
 
-		void set_version(int p_version);
-		int get_version() const;
+public:
+	void set_version(int p_version);
+	int  get_version() const;
 
-		void set_graph_data(const Dictionary &p_data);
-		Dictionary get_graph_data() const;
+	void                       set_nodes(const TypedArray<GVSEmitterNode> &p_nodes);
+	TypedArray<GVSEmitterNode> get_nodes() const;
 
-		GVSResource() = default;
-	};
+	GVSResource() = default;
+};
 
 }
