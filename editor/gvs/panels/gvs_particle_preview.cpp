@@ -21,28 +21,13 @@ void GVSParticlePreview::_notification(int p_what) {
 	}
 }
 
-void GVSParticlePreview::_build_ui() {
-	if (viewport_container) {
-		return;
-	}
-
-	TabContainer *tabs = memnew(TabContainer);
-	tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	tabs->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	add_child(tabs);
-
-	VBoxContainer *tab_root = memnew(VBoxContainer);
-	tab_root->set_name("Preview");
-	tab_root->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	tab_root->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	tabs->add_child(tab_root);
-
+// Crea el SubViewportContainer, el SubViewport y el Node3D raíz de la escena 3D
+void GVSParticlePreview::_build_viewport() {
 	viewport_container = memnew(SubViewportContainer);
 	viewport_container->set_stretch(true);
 	viewport_container->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	viewport_container->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	viewport_container->set_mouse_filter(Control::MOUSE_FILTER_PASS);
-	tab_root->add_child(viewport_container);
 
 	viewport = memnew(SubViewport);
 	viewport->set_transparent_background(false);
@@ -51,7 +36,10 @@ void GVSParticlePreview::_build_ui() {
 
 	scene_root = memnew(Node3D);
 	viewport->add_child(scene_root);
+}
 
+// Escena 3D: entorno, luz, cámara orbital, suelo y esfera de referencia
+void GVSParticlePreview::_build_scene_objects() {
 	WorldEnvironment *world_env = memnew(WorldEnvironment);
 	Ref<Environment> env;
 	env.instantiate();
@@ -70,6 +58,7 @@ void GVSParticlePreview::_build_ui() {
 	scene_root->add_child(camera);
 	_update_camera();
 
+	// Plano
 	MeshInstance3D *plane_instance = memnew(MeshInstance3D);
 	Ref<PlaneMesh> plane_mesh;
 	plane_mesh.instantiate();
@@ -77,6 +66,7 @@ void GVSParticlePreview::_build_ui() {
 	plane_instance->set_mesh(plane_mesh);
 	scene_root->add_child(plane_instance);
 
+	// Esfera
 	MeshInstance3D *sphere_instance = memnew(MeshInstance3D);
 	Ref<SphereMesh> sphere_mesh;
 	sphere_mesh.instantiate();
@@ -85,6 +75,28 @@ void GVSParticlePreview::_build_ui() {
 	sphere_instance->set_mesh(sphere_mesh);
 	sphere_instance->set_position(Vector3(0.0f, 0.5f, 0.0f));
 	scene_root->add_child(sphere_instance);
+}
+
+void GVSParticlePreview::_build_ui() {
+	if (viewport_container) {
+		return;
+	}
+
+	TabContainer *tabs = memnew(TabContainer);
+	tabs->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	tabs->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	add_child(tabs);
+
+	VBoxContainer *tab_root = memnew(VBoxContainer);
+	tab_root->set_name("Preview");
+	tab_root->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	tab_root->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	tabs->add_child(tab_root);
+
+	_build_viewport();
+	tab_root->add_child(viewport_container);
+
+	_build_scene_objects();
 }
 
 void GVSParticlePreview::_update_camera() {
@@ -96,6 +108,7 @@ void GVSParticlePreview::_update_camera() {
 	const float z = orbit_dist * Math::cos(orbit_yaw) * Math::cos(orbit_pitch);
 	camera->set_position(Vector3(x, y, z));
 	camera->look_at(Vector3(0.0f, 0.5f, 0.0f));
+	camera->set_fov(fov);
 }
 
 void GVSParticlePreview::gui_input(const Ref<InputEvent> &p_event) {
@@ -109,14 +122,25 @@ void GVSParticlePreview::gui_input(const Ref<InputEvent> &p_event) {
 		return;
 	}
 
+	// TODO : Poder hacer zoom out y zoom in en la preview
+	if (mb.is_valid() && mb->get_button_index() == MouseButton::WHEEL_UP && fov <= ZOOM_MAX) {
+		fov += 15.0f;
+		accept_event();
+	}
+
+	if (mb.is_valid() && mb->get_button_index() == MouseButton::WHEEL_UP && fov >= ZOOM_MIN) {
+		fov -= 15.0f;
+		accept_event();
+	}
+
 	Ref<InputEventMouseMotion> mm = p_event;
 	if (mm.is_valid() && orbiting) {
 		const Vector2 delta = mm->get_position() - orbit_last_mouse;
-		orbit_last_mouse    = mm->get_position();
+		orbit_last_mouse = mm->get_position();
 
-		orbit_yaw   -= delta.x * 0.01f;
+		orbit_yaw -= delta.x * 0.01f;
 		orbit_pitch += delta.y * 0.01f;
-		orbit_pitch  = CLAMP(orbit_pitch, Math::deg_to_rad(-80.0f), Math::deg_to_rad(80.0f));
+		orbit_pitch = CLAMP(orbit_pitch, Math::deg_to_rad(-80.0f), Math::deg_to_rad(80.0f));
 
 		_update_camera();
 		accept_event();

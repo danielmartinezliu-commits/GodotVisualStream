@@ -19,7 +19,7 @@ protected:
 	void _notification(int p_what);
 
 public:
-	void             set_gvs_resource(const Ref<GVSResource> &p_resource);
+	void set_gvs_resource(const Ref<GVSResource> &p_resource);
 	Ref<GVSResource> get_gvs_resource() const;
 
 	GVSParticleSystem() = default;

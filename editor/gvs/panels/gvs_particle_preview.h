@@ -22,17 +22,25 @@ class GVSParticlePreview : public PanelContainer {
 	Ref<GVSResource> current_resource;
 
 	SubViewportContainer *viewport_container = nullptr;
-	SubViewport          *viewport           = nullptr;
-	Node3D               *scene_root         = nullptr;
-	Camera3D             *camera             = nullptr;
+	SubViewport *viewport = nullptr;
+	Node3D *scene_root = nullptr;
+	Camera3D *camera = nullptr;
 
-	float   orbit_yaw   = 0.0f;
-	float   orbit_pitch = 0.35f;
-	float   orbit_dist  = 4.5f;
-	bool    orbiting    = false;
+	// Camera Rotation
+	float orbit_yaw = 0.0f;
+	float orbit_pitch = 0.35f;
+	float orbit_dist = 4.5f;
+	bool orbiting = false;
 	Vector2 orbit_last_mouse;
 
+	// Camera FOV
+	static constexpr float ZOOM_MIN = 15.0f;
+	static constexpr float ZOOM_MAX = 120.0f;
+	float fov = 75.0f;
+
 	void _build_ui();
+	void _build_viewport();
+	void _build_scene_objects();
 	void _update_camera();
 
 protected:

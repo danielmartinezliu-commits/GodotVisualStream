@@ -23,19 +23,23 @@ namespace GodotVisualStream {
 	}
 
 	GVSEditorPlugin::GVSEditorPlugin() {
+		// Ventana principal del editor GVS, se añade como hija del GUI base del editor
 		editor_window = memnew(GVSEditorWindow);
 		EditorNode::get_singleton()->get_gui_base()->add_child(editor_window);
 
+		// Diálogo de guardado que se usa al crear un nuevo archivo .gvs desde el filesystem
 		create_dialog = memnew(EditorFileDialog);
 		create_dialog->set_file_mode(EditorFileDialog::FILE_MODE_SAVE_FILE);
 		create_dialog->set_title("Crear nuevo archivo GVS");
 		create_dialog->add_filter("*.gvs", "GVS File");
 		EditorNode::get_singleton()->get_gui_base()->add_child(create_dialog);
 
+		// Registra la opción "GVS File..." en el menú contextual del panel FileSystem (botón Create)
 		context_menu_plugin.instantiate();
 		context_menu_plugin->setup(create_dialog);
 		add_context_menu_plugin(EditorContextMenuPlugin::CONTEXT_SLOT_FILESYSTEM_CREATE, context_menu_plugin);
 
+		// Registra el loader/saver para que Godot reconozca y gestione archivos .gvs como recursos
 		format_loader.instantiate();
 		ResourceLoader::add_resource_format_loader(format_loader);
 

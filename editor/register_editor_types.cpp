@@ -146,6 +146,7 @@
 #include "editor/gvs/gvs_editor_plugin.h"
 #include "editor/gvs/gvs_resource.h"
 #include "editor/gvs/nodes/gvs_emitter_node.h"
+#include "editor/gvs/nodes/gvs_variable.h"
 #include "editor/gvs/nodes/gvs_particle_system.h"
 #include "editor/gvs/panels/gvs_particle_preview.h"
 #include "editor/gvs/panels/gvs_variables_panel.h"
@@ -231,6 +232,8 @@ void register_editor_types() {
 	GDREGISTER_CLASS(ResourceImporterWAV);
 
 	// GVS Editor
+	GDREGISTER_CLASS(GodotVisualStream::GVSVariable);
+	GDREGISTER_CLASS(GodotVisualStream::GVSVariableRow);
 	GDREGISTER_CLASS(GodotVisualStream::GVSResource);
 	GDREGISTER_CLASS(GodotVisualStream::GVSEmitterNode);
 	GDREGISTER_CLASS(GodotVisualStream::GVSParticleSystem);
@@ -241,6 +244,7 @@ void register_editor_types() {
 	GDREGISTER_CLASS(GodotVisualStream::GVSVariablesPanel);
 	GDREGISTER_CLASS(GodotVisualStream::GVSEmittersPanel);
 	GDREGISTER_CLASS(GodotVisualStream::GVSTimelinePanel);
+	GDREGISTER_CLASS(GodotVisualStream::GVSPropertyDropZone);
 	GDREGISTER_CLASS(GodotVisualStream::GVSInspectorPanel);
 	GDREGISTER_CLASS(GodotVisualStream::GVSEditorWindow);
 	GDREGISTER_CLASS(GodotVisualStream::GVSEditorPlugin);

@@ -4,6 +4,7 @@
 
 namespace GodotVisualStream {
 
+// Expone gvs_resource al inspector para poder asignar el recurso .gvs desde el editor
 void GVSParticleSystem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_gvs_resource", "resource"), &GVSParticleSystem::set_gvs_resource);
 	ClassDB::bind_method(D_METHOD("get_gvs_resource"), &GVSParticleSystem::get_gvs_resource);
@@ -18,10 +19,11 @@ void GVSParticleSystem::_notification(int p_what) {
 	}
 }
 
+// Destruye los hijos internos actuales y reconstruye la jerarquía de nodos a partir del recurso
 void GVSParticleSystem::_rebuild() {
-	// Clear previous internal children
+	// Limpia los hijos internos del frame anterior
 	for (int i = get_child_count(true) - 1; i >= 0; i--) {
-		Node *child = get_child(i, true);
+		Node* child = get_child(i, true);
 		remove_child(child);
 		child->queue_free();
 	}
@@ -30,6 +32,7 @@ void GVSParticleSystem::_rebuild() {
 		return;
 	}
 
+	// TODO: De momento esto es falso, hay que hacerlo de verdad para que funcione con lo que se instancia en el preview
 	MeshInstance3D *plane = memnew(MeshInstance3D);
 	Ref<PlaneMesh> plane_mesh;
 	plane_mesh.instantiate();
@@ -47,6 +50,7 @@ void GVSParticleSystem::_rebuild() {
 	add_child(sphere, false, Node::INTERNAL_MODE_BACK);
 }
 
+// Asigna el recurso y fuerza un rebuild solo si el nodo ya está en el árbol de escena
 void GVSParticleSystem::set_gvs_resource(const Ref<GVSResource> &p_resource) {
 	resource = p_resource;
 	if (is_inside_tree()) {

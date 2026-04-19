@@ -3,11 +3,15 @@
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
 #include "gvs_resource.h"
+#include "nodes/gvs_variable.h"
 
 namespace GodotVisualStream {
 
 	class GVSFormatLoader : public ResourceFormatLoader {
 		GDCLASS(GVSFormatLoader, ResourceFormatLoader);
+
+		static Ref<GVSEmitterNode> _parse_node(const Dictionary &p_dict);
+		static Ref<GVSVariable> _parse_variable(const Dictionary &p_dict);
 
 	public:
 		virtual Ref<Resource> load(
@@ -25,6 +29,9 @@ namespace GodotVisualStream {
 
 	class GVSFormatSaver : public ResourceFormatSaver {
 		GDCLASS(GVSFormatSaver, ResourceFormatSaver);
+
+		static Dictionary _serialize_node(const Ref<GVSEmitterNode> &p_node);
+		static Dictionary _serialize_variable(const Ref<GVSVariable> &p_var);
 
 	public:
 		virtual Error save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) override;

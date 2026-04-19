@@ -21,19 +21,25 @@ class GVSEditorWindow : public AcceptDialog {
 	Ref<GVSResource> current_resource;
 
 	// Splits
-	HSplitContainer *main_split         = nullptr;
+	HSplitContainer *main_split = nullptr;
 	HSplitContainer *center_right_split = nullptr;
-	VSplitContainer *left_split         = nullptr;
-	VSplitContainer *center_split       = nullptr;
+	VSplitContainer *left_split = nullptr;
+	VSplitContainer *center_split = nullptr;
 
 	// Paneles
 	GVSParticlePreview *particle_preview = nullptr;
-	GVSVariablesPanel  *variables_panel  = nullptr;
-	GVSEmittersPanel   *emitters_panel   = nullptr;
-	GVSTimelinePanel   *timeline_panel   = nullptr;
-	GVSInspectorPanel  *inspector_panel  = nullptr;
+	GVSVariablesPanel *variables_panel = nullptr;
+	GVSEmittersPanel *emitters_panel = nullptr;
+	GVSTimelinePanel *timeline_panel = nullptr;
+	GVSInspectorPanel *inspector_panel  = nullptr;
 
 	void _build_ui();
+	void _build_toolbar(VBoxContainer *p_root);
+	VSplitContainer  *_build_left_panel();
+	VSplitContainer  *_build_center_panel();
+	GVSInspectorPanel *_build_right_panel();
+	void _connect_panel_signals();
+
 	void _on_graph_changed();
 	void _on_add_to_scene_pressed();
 

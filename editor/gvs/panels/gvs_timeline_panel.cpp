@@ -23,6 +23,7 @@ void GVSTimelinePanel::_notification(int p_what) {
 	}
 }
 
+// Construye la pestaña Timeline con un placeholder hasta que se implemente el contenido real
 void GVSTimelinePanel::_build_ui() {
 	if (placeholder_label) {
 		return;

@@ -1,11 +1,13 @@
 #include "gvs_emitters_panel.h"
 
+#include "core/input/input_event.h"
 #include "core/io/resource_saver.h"
 #include "core/object/callable_mp.h"
 #include "scene/scene_string_names.h"
 
 namespace GodotVisualStream {
 
+// Señal emitida al seleccionar (o deseleccionar) un nodo en el canvas
 void GVSEmittersPanel::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("node_selected",
 			PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "GVSEmitterNode")));
@@ -14,6 +16,7 @@ void GVSEmittersPanel::_bind_methods() {
 void GVSEmittersPanel::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_RESIZED: {
+			// Ajusta la barra overlay para que ocupe todo el ancho al redimensionar
 			if (overlay_bar) {
 				const float overlay_h = overlay_bar->get_minimum_size().y;
 				overlay_bar->set_position(Vector2(0, 0));
@@ -21,6 +24,7 @@ void GVSEmittersPanel::_notification(int p_what) {
 			}
 		} break;
 		case NOTIFICATION_THEME_CHANGED: {
+			// Recachea el color del borde al cambiar el tema del editor
 			Ref<StyleBoxFlat> flat = get_theme_stylebox(SceneStringName(panel), SNAME("Tree"));
 			if (flat.is_valid()) {
 				_panel_border_color = flat->get_bg_color().lightened(0.35f);
@@ -28,6 +32,7 @@ void GVSEmittersPanel::_notification(int p_what) {
 			queue_redraw();
 		} break;
 		case NOTIFICATION_DRAW: {
+			// Orden de pintado: fondo+grid → nodos → borde exterior
 			_draw_grid();
 			_draw_nodes();
 			draw_rect(Rect2(Vector2(), get_size()), _panel_border_color, false, 1.0f);
@@ -76,36 +81,71 @@ void GVSEmittersPanel::_draw_grid() {
 	}
 }
 
+// Dibuja todos los nodos del canvas en orden (el último en el array queda encima)
 void GVSEmittersPanel::_draw_nodes() {
 	for (int i = 0; i < nodes.size(); i++) {
 		_draw_single_node(nodes[i]);
 	}
 }
 
+// Pinta cuerpo, cabecera, borde (dorado si seleccionado), título y propiedades del nodo
 void GVSEmittersPanel::_draw_single_node(const Ref<GVSEmitterNode> &p_node) {
-	const Vector2 pos  = _canvas_to_screen(p_node->get_canvas_pos());
-	const float   w    = GVSEmitterNode::NODE_WIDTH    * zoom;
-	const float   h    = GVSEmitterNode::NODE_HEIGHT   * zoom;
-	const float   hh   = GVSEmitterNode::HEADER_HEIGHT * zoom;
+	const Vector2 pos = _canvas_to_screen(p_node->get_canvas_pos());
+	const float w  = GVSEmitterNode::NODE_WIDTH  * zoom;
+	const float h  = GVSEmitterNode::NODE_HEIGHT * zoom;
+	const float hh = GVSEmitterNode::HEADER_HEIGHT * zoom;
 
 	const Rect2 body(pos, Vector2(w, h));
 	const Rect2 header(pos, Vector2(w, hh));
 
-	draw_rect(body, Color(0.22f, 0.22f, 0.22f));
+	draw_rect(body,   Color(0.22f, 0.22f, 0.22f));
 	draw_rect(header, Color(0.18f, 0.45f, 0.78f));
 	const Color border = p_node->is_selected() ? Color(0.9f, 0.6f, 0.1f) : Color(0.12f, 0.12f, 0.12f);
 	draw_rect(body, border, false, p_node->is_selected() ? 2.0f : 1.0f);
 
 	Ref<Font> font = get_theme_font("font", "Label");
-	if (font.is_valid()) {
-		const int font_size = MAX(10, (int)(13 * zoom));
-		const float text_y  = pos.y + (hh + font->get_ascent(font_size)) * 0.5f;
-		draw_string(font, Vector2(pos.x + 8.0f * zoom, text_y),
-				p_node->get_title(), HORIZONTAL_ALIGNMENT_LEFT,
-				w - 16.0f * zoom, font_size, Color(1, 1, 1));
+	if (!font.is_valid()) {
+		return;
 	}
+
+	const int   font_size  = MAX(10, (int)(13 * zoom));
+	const int   prop_size  = MAX(9,  (int)(11 * zoom));
+	const float pad        = 8.0f * zoom;
+	const float line_h     = font->get_height(prop_size) + 3.0f * zoom;
+
+	// Title in header
+	const float title_y = pos.y + (hh + font->get_ascent(font_size)) * 0.5f;
+	draw_string(font, Vector2(pos.x + pad, title_y),
+			p_node->get_title(), HORIZONTAL_ALIGNMENT_LEFT,
+			w - pad * 2.0f, font_size, Color(1, 1, 1));
+
+	// Separator line below header
+	const float sep_y = pos.y + hh + 1.0f;
+	draw_line(Vector2(pos.x, sep_y), Vector2(pos.x + w, sep_y),
+			Color(0.0f, 0.0f, 0.0f, 0.4f), 1.0f);
+
+	// Property rows inside body
+	float row_y = pos.y + hh + 6.0f * zoom + font->get_ascent(prop_size);
+
+	// Lifetime row
+	const Color label_col(0.65f, 0.65f, 0.65f);
+	const Color value_col(1.0f,  1.0f,  1.0f);
+	const Color var_col(0.4f, 0.8f, 1.0f); // same blue as float variables
+
+	draw_string(font, Vector2(pos.x + pad, row_y),
+			"Lifetime", HORIZONTAL_ALIGNMENT_LEFT, w * 0.45f, prop_size, label_col);
+
+	const String lifetime_display = p_node->get_lifetime_var().is_empty()
+			? vformat("%.2f s", p_node->get_lifetime())
+			: String::utf8("\xf0\x9d\x91\xa5 ") + p_node->get_lifetime_var(); // italic x prefix
+
+	const Color display_col = p_node->get_lifetime_var().is_empty() ? value_col : var_col;
+	draw_string(font, Vector2(pos.x + w * 0.48f, row_y),
+			lifetime_display, HORIZONTAL_ALIGNMENT_LEFT,
+			w * 0.52f - pad, prop_size, display_col);
 }
 
+// Convierte coordenadas de pantalla a espacio canvas (tiene en cuenta scroll y zoom)
 Vector2 GVSEmittersPanel::_screen_to_canvas(Vector2 p_screen) const {
 	return (p_screen - scroll_offset) / zoom;
 }
@@ -114,6 +154,7 @@ Vector2 GVSEmittersPanel::_canvas_to_screen(Vector2 p_canvas) const {
 	return p_canvas * zoom + scroll_offset;
 }
 
+// Devuelve el índice del nodo bajo el cursor, o -1 si no hay ninguno (recorre al revés para priorizar el de encima)
 int GVSEmittersPanel::_node_at_screen(Vector2 p_screen) const {
 	for (int i = nodes.size() - 1; i >= 0; i--) {
 		const Rect2 r(
@@ -159,6 +200,14 @@ void GVSEmittersPanel::gui_input(const Ref<InputEvent> &p_event) {
 					emit_signal(SNAME("node_selected"), Ref<GVSEmitterNode>());
 				}
 				queue_redraw();
+			} else if (mb->get_button_index() == MouseButton::RIGHT) {
+				const int idx = _node_at_screen(mb->get_position());
+				if (idx >= 0) {
+					context_menu_node_idx = idx;
+					context_menu->set_position(get_screen_position() + mb->get_position());
+					context_menu->popup();
+					accept_event();
+				}
 			} else if (mb->get_button_index() == MouseButton::MIDDLE) {
 				panning          = true;
 				pan_start_mouse  = mb->get_position();
@@ -192,8 +241,22 @@ void GVSEmittersPanel::gui_input(const Ref<InputEvent> &p_event) {
 			accept_event();
 		}
 	}
+
+	Ref<InputEventKey> key = p_event;
+	if (key.is_valid() && key->is_pressed() && !key->is_echo()) {
+		if (key->get_keycode() == Key::KEY_DELETE || key->get_keycode() == Key::BACKSPACE) {
+			for (int i = 0; i < nodes.size(); i++) {
+				if (nodes[i]->is_selected()) {
+					_delete_node(i);
+					accept_event();
+					break;
+				}
+			}
+		}
+	}
 }
 
+// Crea un nuevo nodo emisor centrado en la vista actual y lo añade al recurso
 void GVSEmittersPanel::_on_add_node_pressed() {
 	const Vector2 center_screen(get_size().x * 0.5f, get_size().y * 0.5f);
 	const Vector2 canvas_pos = _screen_to_canvas(center_screen)
@@ -212,12 +275,38 @@ void GVSEmittersPanel::_on_add_node_pressed() {
 	queue_redraw();
 }
 
+void GVSEmittersPanel::_delete_node(int p_index) {
+	if (p_index < 0 || p_index >= nodes.size()) {
+		return;
+	}
+	nodes.remove_at(p_index);
+
+	if (current_resource.is_valid()) {
+		TypedArray<GVSEmitterNode> res_nodes = current_resource->get_nodes();
+		res_nodes.remove_at(p_index);
+		current_resource->set_nodes(res_nodes);
+		_save();
+	}
+
+	emit_signal(SNAME("node_selected"), Ref<GVSEmitterNode>());
+	queue_redraw();
+}
+
+void GVSEmittersPanel::_on_context_menu_id_pressed(int p_id) {
+	if (p_id == 0) {
+		_delete_node(context_menu_node_idx);
+	}
+	context_menu_node_idx = -1;
+}
+
+// Guarda el recurso en disco si tiene ruta asignada
 void GVSEmittersPanel::_save() {
 	if (current_resource.is_valid() && !current_resource->get_path().is_empty()) {
 		ResourceSaver::save(current_resource, current_resource->get_path());
 	}
 }
 
+// Sincroniza la lista de nodos del canvas con los del recurso cargado
 void GVSEmittersPanel::load_resource(const Ref<GVSResource> &p_resource) {
 	current_resource = p_resource;
 	nodes.clear();
@@ -261,6 +350,11 @@ GVSEmittersPanel::GVSEmittersPanel() {
 	btn_add->set_theme_type_variation(SceneStringName(FlatButton));
 	btn_add->connect("pressed", callable_mp(this, &GVSEmittersPanel::_on_add_node_pressed));
 	btn_row->add_child(btn_add);
+
+	context_menu = memnew(PopupMenu);
+	context_menu->add_item("Delete Node", 0);
+	context_menu->connect("id_pressed", callable_mp(this, &GVSEmittersPanel::_on_context_menu_id_pressed));
+	add_child(context_menu);
 }
 
 }

@@ -26,37 +26,23 @@ void GVSEditorWindow::_notification(int p_what) {
 	}
 }
 
-void GVSEditorWindow::_build_ui() {
-	if (main_split) {
-		return;
-	}
-
-	VBoxContainer *root = memnew(VBoxContainer);
-	root->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	add_child(root);
-
+// Barra superior con acciones globales del editor
+void GVSEditorWindow::_build_toolbar(VBoxContainer *p_root) {
 	HBoxContainer *toolbar = memnew(HBoxContainer);
 	toolbar->add_theme_constant_override("separation", 4);
-	root->add_child(toolbar);
+	p_root->add_child(toolbar);
 
 	Button *btn_add_to_scene = memnew(Button);
 	btn_add_to_scene->set_text("Add to Scene");
 	btn_add_to_scene->connect("pressed", callable_mp(this, &GVSEditorWindow::_on_add_to_scene_pressed));
 	toolbar->add_child(btn_add_to_scene);
+}
 
-	auto setup_split = [](SplitContainer *s) {
-		s->add_theme_constant_override("separation", 1);
-		s->add_theme_constant_override("autohide", 1);
-	};
-
-	main_split = memnew(HSplitContainer);
-	main_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	setup_split(main_split);
-	root->add_child(main_split);
-
+// Panel izquierdo: preview 3D del sistema de partículas encima del panel de variables
+VSplitContainer *GVSEditorWindow::_build_left_panel() {
 	left_split = memnew(VSplitContainer);
-	setup_split(left_split);
-	main_split->add_child(left_split);
+	left_split->add_theme_constant_override("separation", 1);
+	left_split->add_theme_constant_override("autohide", 1);
 
 	particle_preview = memnew(GVSParticlePreview);
 	particle_preview->set_v_size_flags(Control::SIZE_EXPAND_FILL);
@@ -66,17 +52,16 @@ void GVSEditorWindow::_build_ui() {
 	variables_panel->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	left_split->add_child(variables_panel);
 
-	center_right_split = memnew(HSplitContainer);
-	center_right_split->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-	center_right_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	setup_split(center_right_split);
-	main_split->add_child(center_right_split);
+	return left_split;
+}
 
+// Panel central: lista de emisores (con margen) encima de la timeline
+VSplitContainer *GVSEditorWindow::_build_center_panel() {
 	center_split = memnew(VSplitContainer);
 	center_split->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	center_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	setup_split(center_split);
-	center_right_split->add_child(center_split);
+	center_split->add_theme_constant_override("separation", 1);
+	center_split->add_theme_constant_override("autohide", 1);
 
 	MarginContainer *emitters_margin = memnew(MarginContainer);
 	emitters_margin->add_theme_constant_override("margin_left",   5);
@@ -96,10 +81,18 @@ void GVSEditorWindow::_build_ui() {
 	timeline_panel->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	center_split->add_child(timeline_panel);
 
+	return center_split;
+}
+
+// Panel derecho: inspector de propiedades del nodo seleccionado
+GVSInspectorPanel *GVSEditorWindow::_build_right_panel() {
 	inspector_panel = memnew(GVSInspectorPanel);
 	inspector_panel->set_v_size_flags(Control::SIZE_EXPAND_FILL);
-	center_right_split->add_child(inspector_panel);
+	return inspector_panel;
+}
 
+// Conexiones entre paneles: selección de emisor → inspector, cambio en inspector → redibujado y guardado
+void GVSEditorWindow::_connect_panel_signals() {
 	emitters_panel->connect("node_selected",
 			callable_mp(inspector_panel, &GVSInspectorPanel::inspect_node));
 
@@ -107,6 +100,43 @@ void GVSEditorWindow::_build_ui() {
 			callable_mp((CanvasItem *)emitters_panel, &CanvasItem::queue_redraw));
 	inspector_panel->connect("node_changed",
 			callable_mp(this, &GVSEditorWindow::_on_graph_changed));
+
+	variables_panel->connect("variable_changed",
+			callable_mp(this, &GVSEditorWindow::_on_graph_changed));
+}
+
+void GVSEditorWindow::_build_ui() {
+	if (main_split) {
+		return;
+	}
+
+	VBoxContainer *root = memnew(VBoxContainer);
+	root->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	add_child(root);
+
+	_build_toolbar(root);
+
+	// Split principal horizontal: izquierda | centro+derecha
+	main_split = memnew(HSplitContainer);
+	main_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	main_split->add_theme_constant_override("separation", 1);
+	main_split->add_theme_constant_override("autohide", 1);
+	root->add_child(main_split);
+
+	main_split->add_child(_build_left_panel());
+
+	// Split horizontal secundario: centro | derecha
+	center_right_split = memnew(HSplitContainer);
+	center_right_split->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	center_right_split->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	center_right_split->add_theme_constant_override("separation", 1);
+	center_right_split->add_theme_constant_override("autohide", 1);
+	main_split->add_child(center_right_split);
+
+	center_right_split->add_child(_build_center_panel());
+	center_right_split->add_child(_build_right_panel());
+
+	_connect_panel_signals();
 }
 
 void GVSEditorWindow::_on_add_to_scene_pressed() {
