@@ -3,6 +3,10 @@
 #include "core/io/resource.h"
 #include "core/math/vector2.h"
 #include "core/string/ustring.h"
+#include "core/variant/typed_array.h"
+#include "editor/gvs/modules/gvs_module.h"
+
+class GPUParticles3D;
 
 namespace GodotVisualStream {
 
@@ -14,15 +18,33 @@ class GVSEmitterNode : public Resource {
 	Vector2 canvas_pos;
 	bool selected = false;
 
-	float lifetime = 5.0f;
-	String lifetime_var;
+	TypedArray<GVSModule> spawn_modules;
+	TypedArray<GVSModule> update_modules;
+	TypedArray<GVSModule> render_modules;
 
 protected:
 	static void _bind_methods();
+
 public:
-	static constexpr float NODE_WIDTH = 180.0f;
-	static constexpr float NODE_HEIGHT = 100.0f;
-	static constexpr float HEADER_HEIGHT =  28.0f;
+	static constexpr float NODE_WIDTH        = 180.0f;
+	static constexpr float HEADER_HEIGHT     = 28.0f;
+	static constexpr float SECTION_LABEL_H   = 18.0f;
+	static constexpr float SECTION_ADD_BTN_H = 18.0f;
+
+	float get_section_height(int p_section) const {
+		int n = 0;
+		if (p_section == 0)      { n = spawn_modules.size(); }
+		else if (p_section == 1) { n = update_modules.size(); }
+		else                     { n = render_modules.size(); }
+		return SECTION_LABEL_H + n * GVSModule::BOX_HEIGHT + SECTION_ADD_BTN_H;
+	}
+
+	float get_node_height() const {
+		return HEADER_HEIGHT
+			+ get_section_height(0)
+			+ get_section_height(1)
+			+ get_section_height(2);
+	}
 
 	static Ref<GVSEmitterNode> create(const String &p_title = "Emitter", Vector2 p_pos = Vector2());
 	static void ensure_id_counter(int p_id);
@@ -39,18 +61,21 @@ public:
 	void set_selected(bool p_selected) { selected = p_selected; }
 	bool is_selected() const { return selected; }
 
-	void set_lifetime(float p_lifetime) { lifetime = p_lifetime; }
-	float get_lifetime() const { return lifetime; }
+	void set_spawn_modules(const TypedArray<GVSModule> &m)  { spawn_modules  = m; }
+	TypedArray<GVSModule> get_spawn_modules()  const { return spawn_modules; }
+	void add_spawn_module(const Ref<GVSModule> &m)  { spawn_modules.push_back(m); }
 
-	void set_lifetime_var(const String &p_var) { lifetime_var = p_var; }
-	String get_lifetime_var() const { return lifetime_var; }
+	void set_update_modules(const TypedArray<GVSModule> &m) { update_modules = m; }
+	TypedArray<GVSModule> get_update_modules() const { return update_modules; }
+	void add_update_module(const Ref<GVSModule> &m) { update_modules.push_back(m); }
 
-	Rect2 get_canvas_rect() const {
-		return Rect2(canvas_pos, Vector2(NODE_WIDTH, NODE_HEIGHT));
-	}
+	void set_render_modules(const TypedArray<GVSModule> &m)  { render_modules  = m; }
+	TypedArray<GVSModule> get_render_modules()  const { return render_modules; }
+	void add_render_module(const Ref<GVSModule> &m)  { render_modules.push_back(m); }
 
-	void recreate_particle_gpu();
+	Rect2 get_canvas_rect() const { return Rect2(canvas_pos, Vector2(NODE_WIDTH, get_node_height())); }
+
+	GPUParticles3D *create_gpu_particles() const;
 };
-
 
 }

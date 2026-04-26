@@ -6,12 +6,10 @@
 #include "scene/gui/tab_container.h"
 #include "scene/gui/subviewport_container.h"
 #include "scene/main/viewport.h"
-#include "scene/3d/mesh_instance_3d.h"
 #include "scene/3d/node_3d.h"
 #include "scene/3d/camera_3d.h"
 #include "scene/3d/light_3d.h"
 #include "scene/3d/world_environment.h"
-#include "scene/resources/3d/primitive_meshes.h"
 #include "editor/gvs/gvs_resource.h"
 
 namespace GodotVisualStream {
@@ -23,25 +21,27 @@ class GVSParticlePreview : public PanelContainer {
 
 	SubViewportContainer *viewport_container = nullptr;
 	SubViewport *viewport = nullptr;
-	Node3D *scene_root = nullptr;
+	Node3D *scene_root    = nullptr;
+	Node3D *particle_root = nullptr;
 	Camera3D *camera = nullptr;
 
-	// Camera Rotation
-	float orbit_yaw = 0.0f;
+	// Camera orbit
+	float orbit_yaw   = 0.0f;
 	float orbit_pitch = 0.35f;
-	float orbit_dist = 4.5f;
+	float orbit_dist  = 4.5f;
 	bool orbiting = false;
 	Vector2 orbit_last_mouse;
 
-	// Camera FOV
-	static constexpr float ZOOM_MIN = 15.0f;
-	static constexpr float ZOOM_MAX = 120.0f;
+	// Camera FOV / zoom
+	static constexpr float FOV_MIN = 15.0f;
+	static constexpr float FOV_MAX = 120.0f;
 	float fov = 75.0f;
 
 	void _build_ui();
 	void _build_viewport();
 	void _build_scene_objects();
 	void _update_camera();
+	void _rebuild_particles();
 
 protected:
 	static void _bind_methods();
@@ -50,6 +50,7 @@ protected:
 
 public:
 	void load_resource(const Ref<GVSResource> &p_resource);
+	void refresh();
 
 	Node3D *get_scene_root() const { return scene_root; }
 

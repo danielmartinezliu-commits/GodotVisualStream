@@ -7,7 +7,6 @@ namespace GodotVisualStream {
 
 // --- GVSFormatLoader ---
 
-// Convierte un diccionario JSON en un GVSEmitterNode, ignorando campos ausentes
 Ref<GVSEmitterNode> GVSFormatLoader::_parse_node(const Dictionary &p_dict) {
 	Ref<GVSEmitterNode> node;
 	node.instantiate();
@@ -24,20 +23,40 @@ Ref<GVSEmitterNode> GVSFormatLoader::_parse_node(const Dictionary &p_dict) {
 		float y = pos.has("y") ? float(pos["y"]) : 0.0f;
 		node->set_canvas_pos(Vector2(x, y));
 	}
-	if (p_dict.has("lifetime")) {
-		node->set_lifetime(float(p_dict["lifetime"]));
-	}
-	if (p_dict.has("lifetime_var")) {
-		node->set_lifetime_var(p_dict["lifetime_var"]);
-	}
+	auto parse_mod_array = [&](const char *p_key) -> TypedArray<GVSModule> {
+		TypedArray<GVSModule> arr;
+		if (p_dict.has(p_key) && p_dict[p_key].get_type() == Variant::ARRAY) {
+			Array json_arr = p_dict[p_key];
+			for (int i = 0; i < json_arr.size(); i++) {
+				if (json_arr[i].get_type() == Variant::DICTIONARY) {
+					arr.push_back(_parse_module(json_arr[i]));
+				}
+			}
+		}
+		return arr;
+	};
+	node->set_spawn_modules(parse_mod_array("spawn_modules"));
+	node->set_update_modules(parse_mod_array("update_modules"));
+	node->set_render_modules(parse_mod_array("render_modules"));
 
 	return node;
 }
 
-// Lee el archivo .gvs, parsea el JSON y reconstruye el GVSResource con sus nodos
+Ref<GVSModule> GVSFormatLoader::_parse_module(const Dictionary &p_dict) {
+	String type_id;
+	if (p_dict.has("type")) {
+		type_id = p_dict["type"];
+	}
+	Ref<GVSModule> mod = GVSModule::create(type_id);
+	if (p_dict.has("enabled")) {
+		mod->set_enabled(bool(p_dict["enabled"]));
+	}
+	mod->deserialize_from(p_dict);
+	return mod;
+}
+
 Ref<Resource> GVSFormatLoader::load(const String &p_path, const String &p_original_path, Error *r_error,
 		bool p_use_sub_threads, float *r_progress, CacheMode p_cache_mode) {
-	// Lectura del archivo
 	Error err;
 	Ref<FileAccess> f = FileAccess::open(p_path, FileAccess::READ, &err);
 	if (err != OK) {
@@ -50,7 +69,6 @@ Ref<Resource> GVSFormatLoader::load(const String &p_path, const String &p_origin
 	Ref<GVSResource> resource;
 	resource.instantiate();
 
-	// Parseo JSON — si falla devolvemos el recurso vacío en vez de un error fatal
 	JSON json;
 	err = json.parse(text);
 	if (err != OK) {
@@ -66,13 +84,11 @@ Ref<Resource> GVSFormatLoader::load(const String &p_path, const String &p_origin
 		return resource;
 	}
 
-	// Extracción de campos del JSON raíz
 	Dictionary d = result;
 
 	if (d.has("version")) {
 		resource->set_version(int(d["version"]));
 	}
-
 	if (d.has("nodes") && d["nodes"].get_type() == Variant::ARRAY) {
 		Array nodes_json = d["nodes"];
 		TypedArray<GVSEmitterNode> nodes;
@@ -84,7 +100,6 @@ Ref<Resource> GVSFormatLoader::load(const String &p_path, const String &p_origin
 		}
 		resource->set_nodes(nodes);
 	}
-
 	if (d.has("variables") && d["variables"].get_type() == Variant::ARRAY) {
 		Array vars_json = d["variables"];
 		TypedArray<GVSVariable> variables;
@@ -115,7 +130,6 @@ Ref<GVSVariable> GVSFormatLoader::_parse_variable(const Dictionary &p_dict) {
 	}
 	if (p_dict.has("default_value")) {
 		Variant raw = p_dict["default_value"];
-		// Color stored as dict: reconstruct from stored type
 		if (type == GVSVariable::VAR_COLOR && raw.get_type() == Variant::DICTIONARY) {
 			Dictionary cd = raw;
 			float r = cd.has("r") ? float(cd["r"]) : 1.0f;
@@ -130,7 +144,6 @@ Ref<GVSVariable> GVSFormatLoader::_parse_variable(const Dictionary &p_dict) {
 	return var;
 }
 
-// Informa a Godot de que este loader gestiona la extensión .gvs
 void GVSFormatLoader::get_recognized_extensions(List<String> *p_extensions) const {
 	p_extensions->push_back("gvs");
 }
@@ -148,28 +161,43 @@ String GVSFormatLoader::get_resource_type(const String &p_path) const {
 
 // --- GVSFormatSaver ---
 
-// Convierte un GVSEmitterNode en un diccionario JSON serializable
 Dictionary GVSFormatSaver::_serialize_node(const Ref<GVSEmitterNode> &p_node) {
 	Dictionary pos;
 	pos["x"] = p_node->get_canvas_pos().x;
 	pos["y"] = p_node->get_canvas_pos().y;
 
 	Dictionary nd;
-	nd["id"]           = p_node->get_id();
-	nd["title"]        = p_node->get_title();
-	nd["canvas_pos"]   = pos;
-	nd["lifetime"]     = p_node->get_lifetime();
-	nd["lifetime_var"] = p_node->get_lifetime_var();
+	nd["id"]         = p_node->get_id();
+	nd["title"]      = p_node->get_title();
+	nd["canvas_pos"] = pos;
+
+	auto serialize_mod_array = [&](const TypedArray<GVSModule> &arr) -> Array {
+		Array out;
+		for (int i = 0; i < arr.size(); i++) {
+			Ref<GVSModule> mod = arr[i];
+			if (mod.is_valid()) { out.push_back(_serialize_module(mod)); }
+		}
+		return out;
+	};
+	nd["spawn_modules"]  = serialize_mod_array(p_node->get_spawn_modules());
+	nd["update_modules"] = serialize_mod_array(p_node->get_update_modules());
+	nd["render_modules"] = serialize_mod_array(p_node->get_render_modules());
 
 	return nd;
 }
 
-// Serializa el GVSResource a JSON con indentación y lo escribe en disco
+Dictionary GVSFormatSaver::_serialize_module(const Ref<GVSModule> &p_mod) {
+	Dictionary md;
+	md["type"]    = p_mod->get_type_id();
+	md["enabled"] = p_mod->get_enabled();
+	p_mod->serialize_to(md);
+	return md;
+}
+
 Error GVSFormatSaver::save(const Ref<Resource> &p_resource, const String &p_path, uint32_t p_flags) {
 	Ref<GVSResource> gvs = p_resource;
 	ERR_FAIL_COND_V(gvs.is_null(), ERR_INVALID_PARAMETER);
 
-	// Serialización de los nodos
 	Array nodes_json;
 	TypedArray<GVSEmitterNode> nodes = gvs->get_nodes();
 	for (int i = 0; i < nodes.size(); i++) {
@@ -189,7 +217,6 @@ Error GVSFormatSaver::save(const Ref<Resource> &p_resource, const String &p_path
 		}
 	}
 
-	// Construcción del JSON raíz y escritura en disco
 	Dictionary root;
 	root["version"]   = gvs->get_version();
 	root["variables"] = vars_json;
@@ -207,7 +234,6 @@ Error GVSFormatSaver::save(const Ref<Resource> &p_resource, const String &p_path
 	return OK;
 }
 
-// Informa a Godot de que este saver gestiona la extensión .gvs
 void GVSFormatSaver::get_recognized_extensions(const Ref<Resource> &p_resource, List<String> *p_extensions) const {
 	if (recognize(p_resource)) {
 		p_extensions->push_back("gvs");

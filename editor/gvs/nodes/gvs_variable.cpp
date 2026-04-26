@@ -54,7 +54,7 @@ Variant GVSVariable::default_for_type(int p_type) {
 		case VAR_INT: return 0;
 		case VAR_BOOL: return false;
 		case VAR_COLOR: return Color(1.0f, 1.0f, 1.0f, 1.0f);
-		//case VAR_VECTOR: return Vector(0.0f);
+		// VAR_VECTOR not yet implemented
 	}
 	return 0.0f;
 }

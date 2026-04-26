@@ -28,9 +28,7 @@ Variant GVSVariableRow::get_drag_data(const Point2 &p_at_position) {
 	return data;
 }
 
-// ---------------------------------------------------------------------------
 // GVSVariablesPanel
-// ---------------------------------------------------------------------------
 
 void GVSVariablesPanel::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("variable_changed"));
@@ -75,6 +73,7 @@ void GVSVariablesPanel::_build_variables_tab(TabContainer *p_tabs) {
 	popup->add_item("Int",   GVSVariable::VAR_INT);
 	popup->add_item("Bool",  GVSVariable::VAR_BOOL);
 	popup->add_item("Color", GVSVariable::VAR_COLOR);
+	// TODO: Vectores
 	popup->connect("id_pressed", callable_mp(this, &GVSVariablesPanel::_on_add_variable));
 
 	ScrollContainer *scroll = memnew(ScrollContainer);
@@ -114,9 +113,7 @@ void GVSVariablesPanel::_build_ui() {
 	_build_config_tab(tab_container);
 }
 
-// ---------------------------------------------------------------------------
 // Variable CRUD
-// ---------------------------------------------------------------------------
 
 void GVSVariablesPanel::_on_add_variable(int p_type) {
 	if (!current_resource.is_valid()) {
@@ -195,9 +192,7 @@ void GVSVariablesPanel::_on_value_color_changed(const Color &p_color, int p_inde
 	_save_to_resource();
 }
 
-// ---------------------------------------------------------------------------
 // Rebuild list
-// ---------------------------------------------------------------------------
 
 void GVSVariablesPanel::_rebuild_variable_list() {
 	if (!variable_list) {
@@ -307,16 +302,15 @@ void GVSVariablesPanel::_save_to_resource() {
 	emit_signal(SNAME("variable_changed"));
 }
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 Color GVSVariablesPanel::_type_color(int p_type) {
 	switch (p_type) {
 		case GVSVariable::VAR_FLOAT: return Color(0.4f, 0.8f, 1.0f);
-		case GVSVariable::VAR_INT:   return Color(0.6f, 1.0f, 0.6f);
-		case GVSVariable::VAR_BOOL:  return Color(1.0f, 0.75f, 0.4f);
+		case GVSVariable::VAR_INT: return Color(0.6f, 1.0f, 0.6f);
+		case GVSVariable::VAR_BOOL: return Color(1.0f, 0.75f, 0.4f);
 		case GVSVariable::VAR_COLOR: return Color(1.0f, 0.5f, 0.8f);
+		// TODO: Vectores
 	}
 	return Color(1, 1, 1);
 }
@@ -327,13 +321,12 @@ String GVSVariablesPanel::_type_name(int p_type) {
 		case GVSVariable::VAR_INT:   return "int";
 		case GVSVariable::VAR_BOOL:  return "bool";
 		case GVSVariable::VAR_COLOR: return "color";
+		// TODO: Vectores
 	}
 	return "float";
 }
 
-// ---------------------------------------------------------------------------
 // Resource load
-// ---------------------------------------------------------------------------
 
 void GVSVariablesPanel::load_resource(const Ref<GVSResource> &p_resource) {
 	current_resource = p_resource;

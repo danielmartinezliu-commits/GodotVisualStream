@@ -100,6 +100,8 @@ void GVSEditorWindow::_connect_panel_signals() {
 			callable_mp((CanvasItem *)emitters_panel, &CanvasItem::queue_redraw));
 	inspector_panel->connect("node_changed",
 			callable_mp(this, &GVSEditorWindow::_on_graph_changed));
+	inspector_panel->connect("node_changed",
+			callable_mp(particle_preview, &GVSParticlePreview::refresh));
 
 	variables_panel->connect("variable_changed",
 			callable_mp(this, &GVSEditorWindow::_on_graph_changed));

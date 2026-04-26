@@ -1,6 +1,8 @@
 #include "gvs_particle_system.h"
 
 #include "core/object/class_db.h"
+#include "scene/3d/gpu_particles_3d.h"
+#include "editor/gvs/nodes/gvs_emitter_node.h"
 
 namespace GodotVisualStream {
 
@@ -19,11 +21,10 @@ void GVSParticleSystem::_notification(int p_what) {
 	}
 }
 
-// Destruye los hijos internos actuales y reconstruye la jerarquía de nodos a partir del recurso
+// Destruye los hijos internos actuales y reconstruye un GPUParticles3D por cada emitter del recurso
 void GVSParticleSystem::_rebuild() {
-	// Limpia los hijos internos del frame anterior
 	for (int i = get_child_count(true) - 1; i >= 0; i--) {
-		Node* child = get_child(i, true);
+		Node *child = get_child(i, true);
 		remove_child(child);
 		child->queue_free();
 	}
@@ -32,22 +33,16 @@ void GVSParticleSystem::_rebuild() {
 		return;
 	}
 
-	// TODO: De momento esto es falso, hay que hacerlo de verdad para que funcione con lo que se instancia en el preview
-	MeshInstance3D *plane = memnew(MeshInstance3D);
-	Ref<PlaneMesh> plane_mesh;
-	plane_mesh.instantiate();
-	plane_mesh->set_size(Vector2(4.0f, 4.0f));
-	plane->set_mesh(plane_mesh);
-	add_child(plane, false, Node::INTERNAL_MODE_BACK);
-
-	MeshInstance3D *sphere = memnew(MeshInstance3D);
-	Ref<SphereMesh> sphere_mesh;
-	sphere_mesh.instantiate();
-	sphere_mesh->set_radius(0.5f);
-	sphere_mesh->set_height(1.0f);
-	sphere->set_position(Vector3(0.0f, 0.5f, 0.0f));
-	sphere->set_mesh(sphere_mesh);
-	add_child(sphere, false, Node::INTERNAL_MODE_BACK);
+	TypedArray<GVSEmitterNode> nodes = resource->get_nodes();
+	for (int i = 0; i < nodes.size(); i++) {
+		Ref<GVSEmitterNode> emitter = nodes[i];
+		if (!emitter.is_valid()) {
+			continue;
+		}
+		GPUParticles3D *gpu = emitter->create_gpu_particles();
+		gpu->set_name(emitter->get_title());
+		add_child(gpu, false, Node::INTERNAL_MODE_BACK);
+	}
 }
 
 // Asigna el recurso y fuerza un rebuild solo si el nodo ya está en el árbol de escena

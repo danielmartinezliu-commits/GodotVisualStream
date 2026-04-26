@@ -11,6 +11,11 @@
 #include "core/templates/vector.h"
 #include "editor/gvs/gvs_resource.h"
 #include "editor/gvs/nodes/gvs_emitter_node.h"
+#include "editor/gvs/modules/gvs_module.h"
+#include "editor/gvs/modules/gvs_module_spawn_rate.h"
+#include "editor/gvs/modules/gvs_module_initial_velocity.h"
+#include "editor/gvs/modules/gvs_module_lifetime.h"
+#include "editor/gvs/modules/gvs_module_render_material.h"
 
 namespace GodotVisualStream {
 
@@ -21,7 +26,10 @@ class GVSEmittersPanel : public Control {
 
 	// Barra superpuesta dentro del canvas (no ocupa espacio encima)
 	MarginContainer *overlay_bar = nullptr;
-	PopupMenu *context_menu = nullptr;
+	PopupMenu *context_menu      = nullptr;
+	PopupMenu *module_menu       = nullptr;
+	int module_menu_node_idx     = -1;
+	int module_menu_section      = -1; // 0=spawn 1=update 2=render
 
 	Vector<Ref<GVSEmitterNode>> nodes;
 
@@ -45,14 +53,19 @@ class GVSEmittersPanel : public Control {
 	void _draw_grid();
 	void _draw_nodes();
 	void _draw_single_node(const Ref<GVSEmitterNode> &p_node);
+	float _draw_section(const Ref<GVSEmitterNode> &p_node, int p_section,
+			float p_start_y, const Ref<Font> &p_font, int p_prop_size, float p_zoom);
 
 	Vector2 _screen_to_canvas(Vector2 p_screen) const;
 	Vector2 _canvas_to_screen(Vector2 p_canvas) const;
 	int _node_at_screen(Vector2 p_screen) const;
 
+	bool _section_add_btn_at_screen(Vector2 p_screen, int &r_node, int &r_section) const;
+
 	void _on_add_node_pressed();
 	void _delete_node(int p_index);
 	void _on_context_menu_id_pressed(int p_id);
+	void _on_module_menu_id_pressed(int p_type_id);
 	void _save();
 
 protected:
@@ -62,6 +75,9 @@ protected:
 
 public:
 	void load_resource(const Ref<GVSResource> &p_resource);
+
+	// Señal emitida al pulsar el "+" de un nodo
+	// "node_add_module_pressed" (GVSEmitterNode node)
 
 	GVSEmittersPanel();
 };

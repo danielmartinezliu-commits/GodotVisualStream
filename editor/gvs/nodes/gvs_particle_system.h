@@ -1,8 +1,6 @@
 #pragma once
 
-#include "scene/3d/mesh_instance_3d.h"
 #include "scene/3d/node_3d.h"
-#include "scene/resources/3d/primitive_meshes.h"
 #include "editor/gvs/gvs_resource.h"
 
 namespace GodotVisualStream {

@@ -146,6 +146,11 @@
 #include "editor/gvs/gvs_editor_plugin.h"
 #include "editor/gvs/gvs_resource.h"
 #include "editor/gvs/nodes/gvs_emitter_node.h"
+#include "editor/gvs/modules/gvs_module.h"
+#include "editor/gvs/modules/gvs_module_spawn_rate.h"
+#include "editor/gvs/modules/gvs_module_initial_velocity.h"
+#include "editor/gvs/modules/gvs_module_lifetime.h"
+#include "editor/gvs/modules/gvs_module_render_material.h"
 #include "editor/gvs/nodes/gvs_variable.h"
 #include "editor/gvs/nodes/gvs_particle_system.h"
 #include "editor/gvs/panels/gvs_particle_preview.h"
@@ -232,6 +237,11 @@ void register_editor_types() {
 	GDREGISTER_CLASS(ResourceImporterWAV);
 
 	// GVS Editor
+	GDREGISTER_CLASS(GodotVisualStream::GVSModule);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModuleSpawnRate);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModuleInitialVelocity);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModuleLifetime);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModuleRenderMaterial);
 	GDREGISTER_CLASS(GodotVisualStream::GVSVariable);
 	GDREGISTER_CLASS(GodotVisualStream::GVSVariableRow);
 	GDREGISTER_CLASS(GodotVisualStream::GVSResource);
