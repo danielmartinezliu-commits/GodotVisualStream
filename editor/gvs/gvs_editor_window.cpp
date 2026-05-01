@@ -4,6 +4,7 @@
 #include "core/object/callable_mp.h"
 #include "editor/editor_data.h"
 #include "editor/editor_interface.h"
+#include "editor/gvs/modules/gvs_module.h"
 #include "scene/gui/margin_container.h"
 
 namespace GodotVisualStream {
@@ -95,6 +96,10 @@ GVSInspectorPanel *GVSEditorWindow::_build_right_panel() {
 void GVSEditorWindow::_connect_panel_signals() {
 	emitters_panel->connect("node_selected",
 			callable_mp(inspector_panel, &GVSInspectorPanel::inspect_node));
+	emitters_panel->connect("node_changed",
+			callable_mp(particle_preview, &GVSParticlePreview::refresh));
+	emitters_panel->connect("node_changed",
+			callable_mp(this, &GVSEditorWindow::_on_graph_changed));
 
 	inspector_panel->connect("node_changed",
 			callable_mp((CanvasItem *)emitters_panel, &CanvasItem::queue_redraw));
@@ -104,7 +109,9 @@ void GVSEditorWindow::_connect_panel_signals() {
 			callable_mp(particle_preview, &GVSParticlePreview::refresh));
 
 	variables_panel->connect("variable_changed",
-			callable_mp(this, &GVSEditorWindow::_on_graph_changed));
+			callable_mp(this, &GVSEditorWindow::_on_variable_changed));
+	variables_panel->connect("variable_renamed",
+			callable_mp(this, &GVSEditorWindow::_on_variable_renamed));
 }
 
 void GVSEditorWindow::_build_ui() {
@@ -157,6 +164,87 @@ void GVSEditorWindow::_on_add_to_scene_pressed() {
 	EditorInterface::get_singleton()->get_selection()->add_node(ps);
 }
 
+void GVSEditorWindow::_sync_variable_bindings() {
+	if (!current_resource.is_valid()) { return; }
+
+	TypedArray<GVSVariable> vars   = current_resource->get_variables();
+	TypedArray<GVSEmitterNode> nodes = current_resource->get_nodes();
+
+	for (int ni = 0; ni < nodes.size(); ni++) {
+		Ref<GVSEmitterNode> node = nodes[ni];
+		if (!node.is_valid()) { continue; }
+
+		const TypedArray<GVSModule> *lists[3] = { nullptr, nullptr, nullptr };
+		TypedArray<GVSModule> spawn  = node->get_spawn_modules();
+		TypedArray<GVSModule> update = node->get_update_modules();
+		TypedArray<GVSModule> render = node->get_render_modules();
+		lists[0] = &spawn; lists[1] = &update; lists[2] = &render;
+
+		for (int li = 0; li < 3; li++) {
+			for (int mi = 0; mi < lists[li]->size(); mi++) {
+				Ref<GVSModule> mod = (*lists[li])[mi];
+				if (!mod.is_valid()) { continue; }
+
+				Vector<GVSModule::InspectorProp> props = mod->get_inspector_props();
+				for (int pi = 0; pi < props.size(); pi++) {
+					const GVSModule::InspectorProp &prop = props[pi];
+					if (prop.bound_var.is_empty()) { continue; }
+
+					for (int vi = 0; vi < vars.size(); vi++) {
+						Ref<GVSVariable> var = vars[vi];
+						if (!var.is_valid() || var->get_var_name() != prop.bound_var) { continue; }
+
+						if (prop.is_vector3) {
+							mod->set_prop_vector3(prop.prop_name, Vector3(var->get_default_value()));
+						} else if (!prop.is_bool && !prop.is_color && !prop.is_enum && !prop.is_resource) {
+							mod->set_prop_value(prop.prop_name, double(var->get_default_value()));
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+void GVSEditorWindow::_on_variable_changed() {
+	_sync_variable_bindings();
+	if (particle_preview) { particle_preview->refresh(); }
+	if (inspector_panel)  { inspector_panel->refresh(); }
+	_on_graph_changed();
+}
+
+void GVSEditorWindow::_on_variable_renamed(const String &p_old_name, const String &p_new_name) {
+	if (!current_resource.is_valid() || p_old_name.is_empty() || p_new_name.is_empty()) { return; }
+
+	TypedArray<GVSEmitterNode> nodes = current_resource->get_nodes();
+	for (int ni = 0; ni < nodes.size(); ni++) {
+		Ref<GVSEmitterNode> node = nodes[ni];
+		if (!node.is_valid()) { continue; }
+
+		TypedArray<GVSModule> spawn  = node->get_spawn_modules();
+		TypedArray<GVSModule> update = node->get_update_modules();
+		TypedArray<GVSModule> render = node->get_render_modules();
+		const TypedArray<GVSModule> *lists[3] = { &spawn, &update, &render };
+
+		for (int li = 0; li < 3; li++) {
+			for (int mi = 0; mi < lists[li]->size(); mi++) {
+				Ref<GVSModule> mod = (*lists[li])[mi];
+				if (!mod.is_valid()) { continue; }
+
+				Vector<GVSModule::InspectorProp> props = mod->get_inspector_props();
+				for (int pi = 0; pi < props.size(); pi++) {
+					if (props[pi].bound_var == p_old_name) {
+						mod->set_prop_binding(props[pi].prop_name, p_new_name);
+					}
+				}
+			}
+		}
+	}
+
+	_on_graph_changed();
+}
+
 void GVSEditorWindow::_on_graph_changed() {
 	if (current_resource.is_valid() && !current_resource->get_path().is_empty()) {
 		ResourceSaver::save(current_resource, current_resource->get_path());
@@ -192,8 +280,8 @@ Ref<GVSResource> GVSEditorWindow::get_current_resource() const {
 GVSEditorWindow::GVSEditorWindow() {
 	set_title("GVS Editor");
 	set_exclusive(false);
-	set_ok_button_text("Close");
-	set_min_size(Size2(1280, 720));
+	get_ok_button()->hide();
+	set_min_size(Size2(1600, 900));
 }
 
 }

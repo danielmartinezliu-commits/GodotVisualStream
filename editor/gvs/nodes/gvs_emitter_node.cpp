@@ -46,13 +46,13 @@ void GVSEmitterNode::ensure_id_counter(int p_id) {
 GPUParticles3D *GVSEmitterNode::create_gpu_particles() const {
 	GPUParticles3D *gpu = memnew(GPUParticles3D);
 	// Neutral defaults — modules are the sole controllers.
-	// amount=0 means no particles if no SpawnRate module is added.
-	gpu->set_amount(0);
+	// emitting=false + amount=1 (Godot minimum) means no visible particles without a SpawnRate module.
+	gpu->set_amount(1);
 	gpu->set_lifetime(1.0);
 	gpu->set_speed_scale(1.0);
 	gpu->set_explosiveness_ratio(0.0);
 	gpu->set_randomness_ratio(0.0);
-	gpu->set_emitting(true);
+	gpu->set_emitting(false);
 
 	Ref<ParticleProcessMaterial> mat;
 	mat.instantiate();

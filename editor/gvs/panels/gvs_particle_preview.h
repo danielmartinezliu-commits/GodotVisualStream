@@ -2,6 +2,8 @@
 
 #include "core/input/input_event.h"
 #include "core/math/math_funcs.h"
+#include "scene/gui/button.h"
+#include "scene/gui/margin_container.h"
 #include "scene/gui/panel_container.h"
 #include "scene/gui/tab_container.h"
 #include "scene/gui/subviewport_container.h"
@@ -9,7 +11,10 @@
 #include "scene/3d/node_3d.h"
 #include "scene/3d/camera_3d.h"
 #include "scene/3d/light_3d.h"
+#include "scene/3d/mesh_instance_3d.h"
 #include "scene/3d/world_environment.h"
+#include "scene/resources/immediate_mesh.h"
+#include "scene/resources/material.h"
 #include "editor/gvs/gvs_resource.h"
 
 namespace GodotVisualStream {
@@ -24,6 +29,7 @@ class GVSParticlePreview : public PanelContainer {
 	Node3D *scene_root    = nullptr;
 	Node3D *particle_root = nullptr;
 	Camera3D *camera = nullptr;
+	MeshInstance3D *grid_instance = nullptr;
 
 	// Camera orbit
 	float orbit_yaw   = 0.0f;
@@ -40,8 +46,10 @@ class GVSParticlePreview : public PanelContainer {
 	void _build_ui();
 	void _build_viewport();
 	void _build_scene_objects();
+	void _build_grid();
 	void _update_camera();
 	void _rebuild_particles();
+	void _on_grid_toggled(bool p_pressed);
 
 protected:
 	static void _bind_methods();

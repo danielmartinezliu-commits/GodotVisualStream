@@ -16,11 +16,11 @@ protected:
 
 public:
 	enum Type {
-		VAR_FLOAT = 0,
-		VAR_INT = 1,
-		VAR_BOOL = 2,
-		VAR_COLOR = 3,
-		//VAR_VECTOR = 4,
+		VAR_FLOAT   = 0,
+		VAR_INT     = 1,
+		VAR_BOOL    = 2,
+		VAR_COLOR   = 3,
+		VAR_VECTOR3 = 4,
 	};
 
 	void set_var_name(const String &p_name);

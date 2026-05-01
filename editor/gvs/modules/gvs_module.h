@@ -2,6 +2,7 @@
 
 #include "core/io/resource.h"
 #include "core/math/color.h"
+#include "core/math/vector3.h"
 #include "core/string/ustring.h"
 #include "core/variant/dictionary.h"
 
@@ -57,6 +58,13 @@ public:
 		bool         is_resource   = false;
 		String       resource_type;          // e.g. "Material"
 		Ref<Resource> resource_value;
+		// Enum (OptionButton)
+		bool          is_enum    = false;
+		Vector<String> enum_items;
+		int           enum_value = 0;
+		// Vector3 (3 compact SpinBoxes)
+		bool    is_vector3    = false;
+		Vector3 vector3_value;
 	};
 	virtual Vector<InspectorProp> get_inspector_props() const { return {}; }
 	virtual void set_prop_value(const String &p_name, double p_val) {}
@@ -64,6 +72,9 @@ public:
 	virtual void set_prop_color(const String &p_name, const Color &p_color) {}
 	virtual void set_prop_bool(const String &p_name, bool p_val) {}
 	virtual void set_prop_resource(const String &p_name, const Ref<Resource> &p_res) {}
+	virtual void set_prop_enum(const String &p_name, int p_idx) {}
+	virtual void    set_prop_vector3(const String &p_name, const Vector3 &p_val) {}
+	virtual Vector3 get_prop_vector3(const String &p_name) const { return Vector3(); }
 
 	// Called from GVSEmitterNode::create_gpu_particles() to apply module data to the runtime node.
 	virtual void apply_to_particles(GPUParticles3D *p_gpu, ParticleProcessMaterial *p_mat) const {}

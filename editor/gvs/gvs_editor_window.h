@@ -41,6 +41,9 @@ class GVSEditorWindow : public AcceptDialog {
 	void _connect_panel_signals();
 
 	void _on_graph_changed();
+	void _on_variable_changed();
+	void _on_variable_renamed(const String &p_old_name, const String &p_new_name);
+	void _sync_variable_bindings();
 	void _on_add_to_scene_pressed();
 
 protected:

@@ -2,12 +2,29 @@
 
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
+#include "scene/gui/option_button.h"
+#include "scene/resources/image_texture.h"
 #include "scene/resources/style_box_flat.h"
 #include "editor/gvs/modules/gvs_module_spawn_rate.h"
 #include "editor/gvs/modules/gvs_module_initial_velocity.h"
 #include "editor/gvs/modules/gvs_module_lifetime.h"
 
 namespace GodotVisualStream {
+
+// Collapses the SpinBox button block to zero width, leaving a plain text input.
+// The button area size is driven by the buttons_width constant and icon sizes;
+// zeroing both completely removes the reserved space and the drawn arrows.
+static void _hide_spinbox_arrows(SpinBox *p_spin) {
+	p_spin->add_theme_constant_override("buttons_width", 0);
+	p_spin->add_theme_constant_override("field_and_buttons_separation", 0);
+	Ref<ImageTexture> empty;
+	empty.instantiate();
+	const char *icon_names[] = { "up", "down", "up_hover", "down_hover",
+			"up_pressed", "down_pressed", "up_disabled", "down_disabled" };
+	for (const char *name : icon_names) {
+		p_spin->add_theme_icon_override(name, empty);
+	}
+}
 
 // =============================================================================
 // GVSPropertyDropZone
@@ -51,6 +68,7 @@ void GVSPropertyDropZone::_rebuild_display() {
 		spin_box->set_step(spin_step);
 		spin_box->set_value(value);
 		spin_box->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		_hide_spinbox_arrows(spin_box);
 		spin_box->connect("value_changed",
 				callable_mp(this, &GVSPropertyDropZone::_on_spin_changed));
 		spin_box->set_drag_forwarding(
@@ -113,6 +131,10 @@ bool GVSPropertyDropZone::can_drop_data(const Point2 &p_point, const Variant &p_
 void GVSPropertyDropZone::drop_data(const Point2 &p_point, const Variant &p_data) {
 	Dictionary d = p_data;
 	bound_var = String(d["name"]);
+	if (d.has("value")) {
+		value = float(d["value"]);
+		if (spin_box) { spin_box->set_value(value); }
+	}
 	_rebuild_display();
 	emit_signal(SNAME("binding_changed"), bound_var);
 }
@@ -136,6 +158,16 @@ void GVSInspectorPanel::_bind_methods() {
 			&GVSInspectorPanel::_on_module_bool_changed);
 	ClassDB::bind_method(D_METHOD("_on_module_resource_changed", "res", "mod", "prop"),
 			&GVSInspectorPanel::_on_module_resource_changed);
+	ClassDB::bind_method(D_METHOD("_on_module_enum_changed", "idx", "mod", "prop"),
+			&GVSInspectorPanel::_on_module_enum_changed);
+	ClassDB::bind_method(D_METHOD("_on_module_vector3_component_changed", "val", "mod", "prop", "component"),
+			&GVSInspectorPanel::_on_module_vector3_component_changed);
+	ClassDB::bind_method(D_METHOD("_on_module_delete_pressed", "section", "mod_idx"),
+			&GVSInspectorPanel::_on_module_delete_pressed);
+
+	ClassDB::bind_method(D_METHOD("_can_drop_v3", "pos", "data"), &GVSInspectorPanel::_can_drop_v3);
+	ClassDB::bind_method(D_METHOD("_drop_v3_data", "pos", "data", "mod", "prop"), &GVSInspectorPanel::_drop_v3_data);
+	ClassDB::bind_method(D_METHOD("_on_v3_unbind_pressed", "mod", "prop"), &GVSInspectorPanel::_on_v3_unbind_pressed);
 }
 
 void GVSInspectorPanel::_notification(int p_what) {
@@ -287,6 +319,13 @@ void GVSInspectorPanel::_on_module_resource_changed(const Ref<Resource> &p_res, 
 	}
 }
 
+void GVSInspectorPanel::_on_module_enum_changed(int p_idx, Ref<GVSModule> p_mod, String p_prop) {
+	if (p_mod.is_valid()) {
+		p_mod->set_prop_enum(p_prop, p_idx);
+		emit_signal(SNAME("node_changed"));
+	}
+}
+
 void GVSInspectorPanel::_rebuild_modules() {
 	for (int i = modules_container->get_child_count() - 1; i >= 0; i--) {
 		Node *c = modules_container->get_child(i);
@@ -376,6 +415,15 @@ void GVSInspectorPanel::_rebuild_modules() {
 			mod_lbl->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			name_row->add_child(mod_lbl);
 
+			Button *del_btn = memnew(Button);
+			del_btn->set_text("x");
+			del_btn->set_flat(true);
+			del_btn->set_custom_minimum_size(Size2(20, 0));
+			del_btn->add_theme_color_override("font_color", Color(0.75f, 0.35f, 0.35f));
+			del_btn->connect("pressed",
+					callable_mp(this, &GVSInspectorPanel::_on_module_delete_pressed).bind(s, m));
+			name_row->add_child(del_btn);
+
 			// Property rows
 			Vector<GVSModule::InspectorProp> props = mod->get_inspector_props();
 			if (!props.is_empty()) {
@@ -422,13 +470,80 @@ void GVSInspectorPanel::_rebuild_modules() {
 								.bind(mod, String(prop.prop_name)));
 						prop_grid->add_child(cpb);
 					} else if (prop.is_bool) {
-						CheckBox *cb = memnew(CheckBox);
-						cb->set_pressed(prop.bool_value);
-						cb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
-						cb->connect("toggled",
+						CheckBox *bool_cb = memnew(CheckBox);
+						bool_cb->set_pressed(prop.bool_value);
+						bool_cb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+						bool_cb->connect("toggled",
 								callable_mp(this, &GVSInspectorPanel::_on_module_bool_changed)
 								.bind(mod, String(prop.prop_name)));
-						prop_grid->add_child(cb);
+						prop_grid->add_child(bool_cb);
+					} else if (prop.is_vector3) {
+						HBoxContainer *v3_row = memnew(HBoxContainer);
+						v3_row->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+						v3_row->add_theme_constant_override("separation", 2);
+						v3_row->set_drag_forwarding(
+								Callable(),
+								callable_mp(this, &GVSInspectorPanel::_can_drop_v3),
+								callable_mp(this, &GVSInspectorPanel::_drop_v3_data).bind(mod, String(prop.prop_name)));
+
+						if (prop.bound_var.is_empty()) {
+							const float components[3] = { prop.vector3_value.x, prop.vector3_value.y, prop.vector3_value.z };
+							const char *labels[3] = { "X", "Y", "Z" };
+							for (int ci = 0; ci < 3; ci++) {
+								Label *axis_lbl = memnew(Label);
+								axis_lbl->set_text(labels[ci]);
+								axis_lbl->add_theme_color_override("font_color",
+										ci == 0 ? Color(0.9f, 0.3f, 0.3f) : ci == 1 ? Color(0.3f, 0.9f, 0.3f) : Color(0.3f, 0.5f, 1.0f));
+								v3_row->add_child(axis_lbl);
+
+								SpinBox *sb = memnew(SpinBox);
+								sb->set_min(-10000.0);
+								sb->set_max(10000.0);
+								sb->set_step(0.01);
+								sb->set_value(components[ci]);
+								sb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+								_hide_spinbox_arrows(sb);
+								sb->connect("value_changed",
+										callable_mp(this, &GVSInspectorPanel::_on_module_vector3_component_changed)
+										.bind(mod, String(prop.prop_name), ci));
+								v3_row->add_child(sb);
+							}
+						} else {
+							Label *badge = memnew(Label);
+							badge->set_text(prop.bound_var);
+							badge->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+							badge->set_vertical_alignment(VERTICAL_ALIGNMENT_CENTER);
+							badge->add_theme_color_override("font_color", Color(0.7f, 0.55f, 1.0f));
+							Ref<StyleBoxFlat> chip;
+							chip.instantiate();
+							chip->set_bg_color(Color(0.7f, 0.55f, 1.0f, 0.12f));
+							chip->set_border_color(Color(0.7f, 0.55f, 1.0f, 0.5f));
+							chip->set_border_width_all(1);
+							chip->set_content_margin_all(3);
+							badge->add_theme_style_override("normal", chip);
+							v3_row->add_child(badge);
+
+							Button *unbind_btn = memnew(Button);
+							unbind_btn->set_text("x");
+							unbind_btn->set_flat(true);
+							unbind_btn->set_custom_minimum_size(Size2(20, 0));
+							unbind_btn->connect("pressed",
+									callable_mp(this, &GVSInspectorPanel::_on_v3_unbind_pressed)
+									.bind(mod, String(prop.prop_name)));
+							v3_row->add_child(unbind_btn);
+						}
+						prop_grid->add_child(v3_row);
+					} else if (prop.is_enum) {
+						OptionButton *opt = memnew(OptionButton);
+						for (int ei = 0; ei < prop.enum_items.size(); ei++) {
+							opt->add_item(prop.enum_items[ei], ei);
+						}
+						opt->select(prop.enum_value);
+						opt->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+						opt->connect("item_selected",
+								callable_mp(this, &GVSInspectorPanel::_on_module_enum_changed)
+								.bind(mod, String(prop.prop_name)));
+						prop_grid->add_child(opt);
 					} else {
 						GVSPropertyDropZone *dz = memnew(GVSPropertyDropZone);
 						dz->set_h_size_flags(Control::SIZE_EXPAND_FILL);
@@ -447,6 +562,56 @@ void GVSInspectorPanel::_rebuild_modules() {
 			}
 		}
 	}
+}
+
+void GVSInspectorPanel::_on_module_vector3_component_changed(double p_val, Ref<GVSModule> p_mod, String p_prop, int p_component) {
+	if (!p_mod.is_valid()) { return; }
+	Vector3 v = p_mod->get_prop_vector3(p_prop);
+	switch (p_component) {
+		case 0: v.x = float(p_val); break;
+		case 1: v.y = float(p_val); break;
+		case 2: v.z = float(p_val); break;
+	}
+	p_mod->set_prop_vector3(p_prop, v);
+	emit_signal(SNAME("node_changed"));
+}
+
+void GVSInspectorPanel::_on_module_delete_pressed(int p_section, int p_mod_idx) {
+	if (!inspected_node.is_valid()) { return; }
+	switch (p_section) {
+		case 0: inspected_node->remove_spawn_module(p_mod_idx);  break;
+		case 1: inspected_node->remove_update_module(p_mod_idx); break;
+		case 2: inspected_node->remove_render_module(p_mod_idx); break;
+		default: return;
+	}
+	_rebuild_modules();
+	emit_signal(SNAME("node_changed"));
+}
+
+bool GVSInspectorPanel::_can_drop_v3(const Point2 &p_pos, const Variant &p_data) {
+	if (p_data.get_type() != Variant::DICTIONARY) { return false; }
+	Dictionary d = p_data;
+	if (!d.has("type") || String(d["type"]) != "gvs_variable") { return false; }
+	if (!d.has("var_type") || int(d["var_type"]) != GVSVariable::VAR_VECTOR3) { return false; }
+	return true;
+}
+
+void GVSInspectorPanel::_drop_v3_data(const Point2 &p_pos, const Variant &p_data, Ref<GVSModule> p_mod, String p_prop) {
+	if (!p_mod.is_valid()) { return; }
+	Dictionary d = p_data;
+	p_mod->set_prop_binding(p_prop, String(d["name"]));
+	if (d.has("value") && d["value"].get_type() == Variant::VECTOR3) {
+		p_mod->set_prop_vector3(p_prop, Vector3(d["value"]));
+	}
+	_rebuild_modules();
+	emit_signal(SNAME("node_changed"));
+}
+
+void GVSInspectorPanel::_on_v3_unbind_pressed(Ref<GVSModule> p_mod, String p_prop) {
+	if (!p_mod.is_valid()) { return; }
+	p_mod->set_prop_binding(p_prop, String());
+	_rebuild_modules();
+	emit_signal(SNAME("node_changed"));
 }
 
 void GVSInspectorPanel::inspect_node(Ref<GVSEmitterNode> p_node) {

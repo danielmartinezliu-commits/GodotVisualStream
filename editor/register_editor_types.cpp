@@ -151,6 +151,8 @@
 #include "editor/gvs/modules/gvs_module_initial_velocity.h"
 #include "editor/gvs/modules/gvs_module_lifetime.h"
 #include "editor/gvs/modules/gvs_module_render_material.h"
+#include "editor/gvs/modules/gvs_module_facing.h"
+#include "editor/gvs/modules/gvs_module_position.h"
 #include "editor/gvs/nodes/gvs_variable.h"
 #include "editor/gvs/nodes/gvs_particle_system.h"
 #include "editor/gvs/panels/gvs_particle_preview.h"
@@ -242,6 +244,8 @@ void register_editor_types() {
 	GDREGISTER_CLASS(GodotVisualStream::GVSModuleInitialVelocity);
 	GDREGISTER_CLASS(GodotVisualStream::GVSModuleLifetime);
 	GDREGISTER_CLASS(GodotVisualStream::GVSModuleRenderMaterial);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModuleFacing);
+	GDREGISTER_CLASS(GodotVisualStream::GVSModulePosition);
 	GDREGISTER_CLASS(GodotVisualStream::GVSVariable);
 	GDREGISTER_CLASS(GodotVisualStream::GVSVariableRow);
 	GDREGISTER_CLASS(GodotVisualStream::GVSResource);

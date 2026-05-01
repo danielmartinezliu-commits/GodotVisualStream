@@ -16,6 +16,8 @@
 #include "editor/gvs/modules/gvs_module_initial_velocity.h"
 #include "editor/gvs/modules/gvs_module_lifetime.h"
 #include "editor/gvs/modules/gvs_module_render_material.h"
+#include "editor/gvs/modules/gvs_module_facing.h"
+#include "editor/gvs/modules/gvs_module_position.h"
 
 namespace GodotVisualStream {
 

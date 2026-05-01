@@ -12,6 +12,7 @@ void GVSEmittersPanel::_bind_methods() {
 			PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "GVSEmitterNode")));
 	ADD_SIGNAL(MethodInfo("node_add_module_pressed",
 			PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "GVSEmitterNode")));
+	ADD_SIGNAL(MethodInfo("node_changed"));
 }
 
 void GVSEmittersPanel::_notification(int p_what) {
@@ -270,14 +271,40 @@ void GVSEmittersPanel::gui_input(const Ref<InputEvent> &p_event) {
 					module_menu_section  = add_section;
 
 					module_menu->clear();
+					// Collect type IDs already on this node to disable duplicates
+					const Ref<GVSEmitterNode> &cur_node = nodes[add_node];
+					auto node_has = [&](const char *tid) -> bool {
+						auto check = [&](const TypedArray<GVSModule> &list) -> bool {
+							for (int ci = 0; ci < list.size(); ci++) {
+								Ref<GVSModule> cm = list[ci];
+								if (cm.is_valid() && cm->get_type_id() == String(tid)) { return true; }
+							}
+							return false;
+						};
+						return check(cur_node->get_spawn_modules())
+							|| check(cur_node->get_update_modules())
+							|| check(cur_node->get_render_modules());
+					};
+
+					module_menu->clear();
 					if (add_section == 0) {
+						module_menu->add_item("Position",         5);
 						module_menu->add_item("Lifetime",         2);
 						module_menu->add_item("Spawn Rate",       0);
 						module_menu->add_item("Initial Velocity", 1);
+						// Grey out already-present modules
+						if (node_has(GVSModulePosition::TYPE_ID))        { module_menu->set_item_disabled(0, true); }
+						if (node_has(GVSModuleLifetime::TYPE_ID))         { module_menu->set_item_disabled(1, true); }
+						if (node_has(GVSModuleSpawnRate::TYPE_ID))        { module_menu->set_item_disabled(2, true); }
+						if (node_has(GVSModuleInitialVelocity::TYPE_ID))  { module_menu->set_item_disabled(3, true); }
 					} else if (add_section == 1) {
 						module_menu->add_item("Initial Velocity", 1);
+						if (node_has(GVSModuleInitialVelocity::TYPE_ID))  { module_menu->set_item_disabled(0, true); }
 					} else {
 						module_menu->add_item("Render Material", 3);
+						module_menu->add_item("Facing",          4);
+						if (node_has(GVSModuleRenderMaterial::TYPE_ID))   { module_menu->set_item_disabled(0, true); }
+						if (node_has(GVSModuleFacing::TYPE_ID))           { module_menu->set_item_disabled(1, true); }
 					}
 
 					module_menu->set_position(get_screen_position() + mb->get_position());
@@ -408,7 +435,9 @@ void GVSEmittersPanel::_on_module_menu_id_pressed(int p_type_id) {
 		case 0: type_id = GVSModuleSpawnRate::TYPE_ID;      break;
 		case 1: type_id = GVSModuleInitialVelocity::TYPE_ID; break;
 		case 2: type_id = GVSModuleLifetime::TYPE_ID;         break;
-		case 3: type_id = GVSModuleRenderMaterial::TYPE_ID;   break;
+		case 3: type_id = GVSModuleRenderMaterial::TYPE_ID; break;
+		case 4: type_id = GVSModuleFacing::TYPE_ID;    break;
+		case 5: type_id = GVSModulePosition::TYPE_ID; break;
 		default: module_menu_node_idx = -1; module_menu_section = -1; return;
 	}
 
@@ -426,6 +455,8 @@ void GVSEmittersPanel::_on_module_menu_id_pressed(int p_type_id) {
 		_save();
 	}
 	queue_redraw();
+	emit_signal(SNAME("node_selected"), node);
+	emit_signal(SNAME("node_changed"));
 	module_menu_node_idx = -1;
 	module_menu_section  = -1;
 }

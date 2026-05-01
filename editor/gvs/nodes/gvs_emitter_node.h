@@ -64,14 +64,17 @@ public:
 	void set_spawn_modules(const TypedArray<GVSModule> &m)  { spawn_modules  = m; }
 	TypedArray<GVSModule> get_spawn_modules()  const { return spawn_modules; }
 	void add_spawn_module(const Ref<GVSModule> &m)  { spawn_modules.push_back(m); }
+	void remove_spawn_module(int idx)  { if (idx >= 0 && idx < spawn_modules.size())  spawn_modules.remove_at(idx); }
 
 	void set_update_modules(const TypedArray<GVSModule> &m) { update_modules = m; }
 	TypedArray<GVSModule> get_update_modules() const { return update_modules; }
 	void add_update_module(const Ref<GVSModule> &m) { update_modules.push_back(m); }
+	void remove_update_module(int idx) { if (idx >= 0 && idx < update_modules.size()) update_modules.remove_at(idx); }
 
 	void set_render_modules(const TypedArray<GVSModule> &m)  { render_modules  = m; }
 	TypedArray<GVSModule> get_render_modules()  const { return render_modules; }
 	void add_render_module(const Ref<GVSModule> &m)  { render_modules.push_back(m); }
+	void remove_render_module(int idx) { if (idx >= 0 && idx < render_modules.size()) render_modules.remove_at(idx); }
 
 	Rect2 get_canvas_rect() const { return Rect2(canvas_pos, Vector2(NODE_WIDTH, get_node_height())); }
 

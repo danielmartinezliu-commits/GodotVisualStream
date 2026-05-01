@@ -5,6 +5,8 @@
 #include "gvs_module_initial_velocity.h"
 #include "gvs_module_lifetime.h"
 #include "gvs_module_render_material.h"
+#include "gvs_module_facing.h"
+#include "gvs_module_position.h"
 
 namespace GodotVisualStream {
 
@@ -35,6 +37,14 @@ Ref<GVSModule> GVSModule::create(const String &p_type_id) {
 		mod = m;
 	} else if (p_type_id == GVSModuleRenderMaterial::TYPE_ID) {
 		Ref<GVSModuleRenderMaterial> m;
+		m.instantiate();
+		mod = m;
+	} else if (p_type_id == GVSModuleFacing::TYPE_ID) {
+		Ref<GVSModuleFacing> m;
+		m.instantiate();
+		mod = m;
+	} else if (p_type_id == GVSModulePosition::TYPE_ID) {
+		Ref<GVSModulePosition> m;
 		m.instantiate();
 		mod = m;
 	} else {

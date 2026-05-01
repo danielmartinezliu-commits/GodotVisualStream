@@ -1,5 +1,6 @@
 #include "gvs_variable.h"
 
+#include "core/math/vector3.h"
 #include "core/object/class_db.h"
 
 namespace GodotVisualStream {
@@ -53,8 +54,8 @@ Variant GVSVariable::default_for_type(int p_type) {
 		case VAR_FLOAT: return 0.0f;
 		case VAR_INT: return 0;
 		case VAR_BOOL: return false;
-		case VAR_COLOR: return Color(1.0f, 1.0f, 1.0f, 1.0f);
-		// VAR_VECTOR not yet implemented
+		case VAR_COLOR:   return Color(1.0f, 1.0f, 1.0f, 1.0f);
+		case VAR_VECTOR3: return Vector3();
 	}
 	return 0.0f;
 }

@@ -13,6 +13,7 @@
 #include "scene/gui/panel_container.h"
 #include "scene/gui/scroll_container.h"
 #include "scene/gui/separator.h"
+#include "scene/gui/option_button.h"
 #include "scene/gui/spin_box.h"
 #include "scene/gui/tab_container.h"
 #include "editor/gvs/gvs_resource.h"
@@ -85,6 +86,13 @@ class GVSInspectorPanel : public PanelContainer {
 	void _on_module_color_changed(const Color &p_color, Ref<GVSModule> p_mod, String p_prop);
 	void _on_module_bool_changed(bool p_val, Ref<GVSModule> p_mod, String p_prop);
 	void _on_module_resource_changed(const Ref<Resource> &p_res, Ref<GVSModule> p_mod, String p_prop);
+	void _on_module_enum_changed(int p_idx, Ref<GVSModule> p_mod, String p_prop);
+	void _on_module_vector3_component_changed(double p_val, Ref<GVSModule> p_mod, String p_prop, int p_component);
+	void _on_module_delete_pressed(int p_section, int p_mod_idx);
+
+	bool _can_drop_v3(const Point2 &p_pos, const Variant &p_data);
+	void _drop_v3_data(const Point2 &p_pos, const Variant &p_data, Ref<GVSModule> p_mod, String p_prop);
+	void _on_v3_unbind_pressed(Ref<GVSModule> p_mod, String p_prop);
 
 protected:
 	static void _bind_methods();
@@ -93,6 +101,7 @@ protected:
 public:
 	void load_resource(const Ref<GVSResource> &p_resource);
 	void inspect_node(Ref<GVSEmitterNode> p_node);
+	void refresh() { if (inspected_node.is_valid()) { inspect_node(inspected_node); } }
 
 	GVSInspectorPanel();
 };

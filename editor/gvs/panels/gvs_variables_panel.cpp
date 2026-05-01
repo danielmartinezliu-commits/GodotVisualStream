@@ -2,9 +2,22 @@
 
 #include "core/object/callable_mp.h"
 #include "scene/gui/popup_menu.h"
+#include "scene/resources/image_texture.h"
 #include "scene/resources/style_box_flat.h"
 
 namespace GodotVisualStream {
+
+static void _hide_spinbox_arrows(SpinBox *p_spin) {
+	p_spin->add_theme_constant_override("buttons_width", 0);
+	p_spin->add_theme_constant_override("field_and_buttons_separation", 0);
+	Ref<ImageTexture> empty;
+	empty.instantiate();
+	const char *icon_names[] = { "up", "down", "up_hover", "down_hover",
+			"up_pressed", "down_pressed", "up_disabled", "down_disabled" };
+	for (const char *name : icon_names) {
+		p_spin->add_theme_icon_override(name, empty);
+	}
+}
 
 // ---------------------------------------------------------------------------
 // GVSVariableRow — drag source
@@ -19,6 +32,7 @@ Variant GVSVariableRow::get_drag_data(const Point2 &p_at_position) {
 	data["type"]     = "gvs_variable";
 	data["name"]     = variable->get_var_name();
 	data["var_type"] = variable->get_type();
+	data["value"]    = variable->get_default_value();
 
 	Label *preview = memnew(Label);
 	preview->set_text("[" + GVSVariablesPanel::_type_name(variable->get_type()) + "] " + variable->get_var_name());
@@ -32,6 +46,9 @@ Variant GVSVariableRow::get_drag_data(const Point2 &p_at_position) {
 
 void GVSVariablesPanel::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("variable_changed"));
+	ADD_SIGNAL(MethodInfo("variable_renamed",
+			PropertyInfo(Variant::STRING, "old_name"),
+			PropertyInfo(Variant::STRING, "new_name")));
 }
 
 void GVSVariablesPanel::_notification(int p_what) {
@@ -69,11 +86,11 @@ void GVSVariablesPanel::_build_variables_tab(TabContainer *p_tabs) {
 	toolbar->add_child(add_var_btn);
 
 	PopupMenu *popup = add_var_btn->get_popup();
-	popup->add_item("Float", GVSVariable::VAR_FLOAT);
-	popup->add_item("Int",   GVSVariable::VAR_INT);
-	popup->add_item("Bool",  GVSVariable::VAR_BOOL);
-	popup->add_item("Color", GVSVariable::VAR_COLOR);
-	// TODO: Vectores
+	popup->add_item("Float",   GVSVariable::VAR_FLOAT);
+	popup->add_item("Int",     GVSVariable::VAR_INT);
+	popup->add_item("Bool",    GVSVariable::VAR_BOOL);
+	popup->add_item("Color",   GVSVariable::VAR_COLOR);
+	popup->add_item("Vector3", GVSVariable::VAR_VECTOR3);
 	popup->connect("id_pressed", callable_mp(this, &GVSVariablesPanel::_on_add_variable));
 
 	ScrollContainer *scroll = memnew(ScrollContainer);
@@ -151,7 +168,17 @@ void GVSVariablesPanel::_on_variable_name_changed(const String &p_name, int p_in
 	}
 	Ref<GVSVariable> var = vars[p_index];
 	if (var.is_valid()) {
+		// Use the last stored non-empty name so rename survives mid-edit empty states.
+		String old_name = variable_last_names.has(p_index) ? variable_last_names[p_index] : var->get_var_name();
 		var->set_var_name(p_name);
+		if (!p_name.is_empty()) {
+			if (!old_name.is_empty() && old_name != p_name) {
+				emit_signal(SNAME("variable_renamed"), old_name, p_name);
+			}
+			variable_last_names[p_index] = p_name;
+		}
+		// When p_name is empty keep variable_last_names unchanged so the next
+		// non-empty name correctly renames from the last valid name.
 	}
 	_save_to_resource();
 }
@@ -192,6 +219,22 @@ void GVSVariablesPanel::_on_value_color_changed(const Color &p_color, int p_inde
 	_save_to_resource();
 }
 
+void GVSVariablesPanel::_on_value_vector3_component_changed(double p_val, int p_index, int p_component) {
+	if (!current_resource.is_valid()) { return; }
+	TypedArray<GVSVariable> vars = current_resource->get_variables();
+	if (p_index < 0 || p_index >= vars.size()) { return; }
+	Ref<GVSVariable> var = vars[p_index];
+	if (!var.is_valid()) { return; }
+	Vector3 v = Vector3(var->get_default_value());
+	switch (p_component) {
+		case 0: v.x = float(p_val); break;
+		case 1: v.y = float(p_val); break;
+		case 2: v.z = float(p_val); break;
+	}
+	var->set_default_value(v);
+	_save_to_resource();
+}
+
 // Rebuild list
 
 void GVSVariablesPanel::_rebuild_variable_list() {
@@ -210,6 +253,15 @@ void GVSVariablesPanel::_rebuild_variable_list() {
 	}
 
 	TypedArray<GVSVariable> vars = current_resource->get_variables();
+
+	// Rebuild the last-name map from current variable state so indices stay valid.
+	variable_last_names.clear();
+	for (int i = 0; i < vars.size(); i++) {
+		Ref<GVSVariable> v = vars[i];
+		if (v.is_valid() && !v->get_var_name().is_empty()) {
+			variable_last_names[i] = v->get_var_name();
+		}
+	}
 
 	for (int i = 0; i < vars.size(); i++) {
 		Ref<GVSVariable> var = vars[i];
@@ -255,6 +307,7 @@ void GVSVariablesPanel::_rebuild_variable_list() {
 			spin->set_step(0.01);
 			spin->set_value(double(var->get_default_value()));
 			spin->set_custom_minimum_size(Size2(72, 0));
+			_hide_spinbox_arrows(spin);
 			spin->connect("value_changed",
 					callable_mp(this, &GVSVariablesPanel::_on_value_float_changed).bind(i));
 			row->add_child(spin);
@@ -266,6 +319,7 @@ void GVSVariablesPanel::_rebuild_variable_list() {
 			spin->set_step(1);
 			spin->set_value(double(int(var->get_default_value())));
 			spin->set_custom_minimum_size(Size2(72, 0));
+			_hide_spinbox_arrows(spin);
 			spin->connect("value_changed",
 					callable_mp(this, &GVSVariablesPanel::_on_value_int_changed).bind(i));
 			row->add_child(spin);
@@ -285,6 +339,29 @@ void GVSVariablesPanel::_rebuild_variable_list() {
 			cpb->connect("color_changed",
 					callable_mp(this, &GVSVariablesPanel::_on_value_color_changed).bind(i));
 			row->add_child(cpb);
+
+		} else if (vtype == GVSVariable::VAR_VECTOR3) {
+			Vector3 v = Vector3(var->get_default_value());
+			const float components[3] = { v.x, v.y, v.z };
+			const char *axis_labels[3] = { "X", "Y", "Z" };
+			for (int ci = 0; ci < 3; ci++) {
+				Label *axis_lbl = memnew(Label);
+				axis_lbl->set_text(axis_labels[ci]);
+				axis_lbl->add_theme_color_override("font_color",
+						ci == 0 ? Color(0.9f, 0.3f, 0.3f) : ci == 1 ? Color(0.3f, 0.9f, 0.3f) : Color(0.3f, 0.5f, 1.0f));
+				row->add_child(axis_lbl);
+
+				SpinBox *sb = memnew(SpinBox);
+				sb->set_min(-10000.0);
+				sb->set_max(10000.0);
+				sb->set_step(0.01);
+				sb->set_value(components[ci]);
+				sb->set_custom_minimum_size(Size2(54, 0));
+				_hide_spinbox_arrows(sb);
+				sb->connect("value_changed",
+						callable_mp(this, &GVSVariablesPanel::_on_value_vector3_component_changed).bind(i, ci));
+				row->add_child(sb);
+			}
 		}
 
 		// Delete button
@@ -309,8 +386,8 @@ Color GVSVariablesPanel::_type_color(int p_type) {
 		case GVSVariable::VAR_FLOAT: return Color(0.4f, 0.8f, 1.0f);
 		case GVSVariable::VAR_INT: return Color(0.6f, 1.0f, 0.6f);
 		case GVSVariable::VAR_BOOL: return Color(1.0f, 0.75f, 0.4f);
-		case GVSVariable::VAR_COLOR: return Color(1.0f, 0.5f, 0.8f);
-		// TODO: Vectores
+		case GVSVariable::VAR_COLOR:   return Color(1.0f, 0.5f, 0.8f);
+		case GVSVariable::VAR_VECTOR3: return Color(0.7f, 0.55f, 1.0f);
 	}
 	return Color(1, 1, 1);
 }
@@ -320,8 +397,8 @@ String GVSVariablesPanel::_type_name(int p_type) {
 		case GVSVariable::VAR_FLOAT: return "float";
 		case GVSVariable::VAR_INT:   return "int";
 		case GVSVariable::VAR_BOOL:  return "bool";
-		case GVSVariable::VAR_COLOR: return "color";
-		// TODO: Vectores
+		case GVSVariable::VAR_COLOR:   return "color";
+		case GVSVariable::VAR_VECTOR3: return "vec3";
 	}
 	return "float";
 }

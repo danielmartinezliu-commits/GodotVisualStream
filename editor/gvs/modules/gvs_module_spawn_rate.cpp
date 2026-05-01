@@ -57,6 +57,7 @@ void GVSModuleSpawnRate::apply_to_particles(GPUParticles3D *p_gpu, ParticleProce
 	if (lifetime > 0.0) {
 		p_gpu->set_amount(MAX(1, int(rate * lifetime)));
 	}
+	p_gpu->set_emitting(true);
 }
 
 }

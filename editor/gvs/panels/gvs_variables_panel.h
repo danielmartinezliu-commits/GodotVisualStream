@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/templates/hash_map.h"
 #include "scene/gui/box_container.h"
 #include "scene/gui/button.h"
 #include "scene/gui/check_box.h"
@@ -39,6 +40,10 @@ class GVSVariablesPanel : public PanelContainer {
 	TabContainer *tab_container  = nullptr;
 	VBoxContainer *variable_list = nullptr;
 
+	// Tracks the last non-empty name for each variable index so that rename
+	// propagation survives mid-edit empty states (user clears then retypes).
+	HashMap<int, String> variable_last_names;
+
 	void _build_ui();
 	void _build_variables_tab(TabContainer *p_tabs);
 	void _build_config_tab(TabContainer *p_tabs);
@@ -50,6 +55,7 @@ class GVSVariablesPanel : public PanelContainer {
 	void _on_value_int_changed(double p_val, int p_index);
 	void _on_value_bool_changed(bool p_val, int p_index);
 	void _on_value_color_changed(const Color &p_color, int p_index);
+	void _on_value_vector3_component_changed(double p_val, int p_index, int p_component);
 
 	void _rebuild_variable_list();
 	void _save_to_resource();

@@ -7,16 +7,21 @@ namespace GodotVisualStream {
 class GVSModuleInitialVelocity : public GVSModule {
 	GDCLASS(GVSModuleInitialVelocity, GVSModule);
 
-	float velocity_min = 0.0f;
-	String velocity_min_var;
-	float velocity_max = 5.0f;
-	String velocity_max_var;
+	Vector3 direction     = Vector3(0, 1, 0);
+	String  direction_binding;
+	float   velocity_min  = 0.0f;
+	String  velocity_min_var;
+	float   velocity_max  = 5.0f;
+	String  velocity_max_var;
 
 protected:
 	static void _bind_methods();
 
 public:
 	static const char *TYPE_ID;
+
+	void    set_direction(const Vector3 &v) { direction = v; }
+	Vector3 get_direction() const { return direction; }
 
 	void set_velocity_min(float p_v) { velocity_min = p_v; }
 	float get_velocity_min() const { return velocity_min; }
@@ -37,8 +42,10 @@ public:
 	void deserialize_from(const Dictionary &p_dict) override;
 
 	Vector<InspectorProp> get_inspector_props() const override;
-	void set_prop_value(const String &p_name, double p_val) override;
-	void set_prop_binding(const String &p_name, const String &p_var) override;
+	void    set_prop_value(const String &p_name, double p_val) override;
+	void    set_prop_binding(const String &p_name, const String &p_var) override;
+	void    set_prop_vector3(const String &p_name, const Vector3 &p_val) override;
+	Vector3 get_prop_vector3(const String &p_name) const override;
 
 	void apply_to_particles(GPUParticles3D *p_gpu, ParticleProcessMaterial *p_mat) const override;
 };
